@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecMetris.Interfaces", "SpecMetris.Interfaces\SpecMetris.Interfaces.csproj", "{3520BB97-42B2-4E12-B41E-5E15F37A6536}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpecMetrix.Interfaces", "SpecMetris.Interfaces\SpecMetrix.Interfaces.csproj", "{3520BB97-42B2-4E12-B41E-5E15F37A6536}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
