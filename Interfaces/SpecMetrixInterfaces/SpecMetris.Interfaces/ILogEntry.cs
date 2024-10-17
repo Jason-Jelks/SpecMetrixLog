@@ -4,6 +4,11 @@ namespace SpecMetrix.Interfaces;
 public interface ILogEntry
 {
     /// <summary>
+    /// Unique identifier for the log entry
+    /// </summary>
+    Guid LogId { get; set; }
+
+    /// <summary>
     /// DateTime the event message occurred
     /// </summary>
     DateTime Timestamp { get; set; }
@@ -14,9 +19,9 @@ public interface ILogEntry
     int Code { get; set; }
 
     /// <summary>
-    /// High level process name given where this event originated
+    /// High level process name given where this event originated (e.g. Core, Database, Spectrometer, IO)
     /// </summary>
-    string Process { get; set; }  // e.g., Core, Database, Spectrometer, IO
+    string Process { get; set; } 
 
     /// <summary>
     /// Logging Level { debug, info, warn, error, fatal }
@@ -36,5 +41,42 @@ public interface ILogEntry
     /// <summary>
     /// Number of repetitive occurrence that this event occurred without stopping
     /// </summary>
-    ulong Occurrences { get; set; } 
+    ulong Occurrences { get; set; }
+
+    /// <summary>
+    /// Optional contextual data (e.g., user ID, session ID)
+    /// </summary>
+    IDictionary<string, string>? Context { get; set; }
+
+    /// <summary>
+    /// Optional source (e.g., application or server name)
+    /// </summary>
+    string? Source { get; set; }
+
+    /// <summary>
+    /// Optional category to group similar log entries
+    /// </summary>
+    LogCategory? Category { get; set; }
+
+    /// <summary>
+    /// Exception Message
+    /// </summary>
+    ExceptionDetails? Exception { get; set; }
+}
+
+public class ExceptionDetails
+{
+    public string? Message { get; set; }
+    public string? StackTrace { get; set; }
+}
+
+public enum LogCategory
+{
+    Authentication,
+    Database,
+    Spectrometer,
+    Integration,
+    Communication,
+    UI,
+    PLC
 }
