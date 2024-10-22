@@ -4,6 +4,16 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
 
+	<!-- NuGet Package Info -->
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<PackageId>SpecMetrix.Interfaces</PackageId>
+	<Version>0.1.0</Version>
+	<Authors>Jason Jelks</Authors>
+	<Company>SpecMetrix</Company>
+	<Description>Interfaces for SpecMetrix Logging System</Description>
+	<PackageTags>logging interfaces specmetrix</PackageTags>
+	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+	<RepositoryUrl>https://github.com/Jason-Jelks/SpecMetrixLog/tree/main/Interfaces/SpecMetrixInterfaces</RepositoryUrl>
+	</PropertyGroup>
 </Project>
