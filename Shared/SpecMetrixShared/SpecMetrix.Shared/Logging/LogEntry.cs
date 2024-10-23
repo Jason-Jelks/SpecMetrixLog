@@ -1,6 +1,6 @@
 ﻿using SpecMetrix.Interfaces;
 
-namespace SpecMetrix.Shared.DTO;
+namespace SpecMetrix.Shared.Logging;
 
 /// <summary>
 /// Log Entry for SpecMetrix systems

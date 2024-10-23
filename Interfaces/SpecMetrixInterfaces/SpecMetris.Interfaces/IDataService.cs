@@ -1,8 +1,27 @@
-﻿namespace SpecMetrix.Interfaces;
-
-public interface IDataService
+﻿namespace SpecMetrix.Interfaces
 {
-    Task WriteLogAsync(ILogEntry logEntry);         // Write a log entry to the database
-    Task<List<ILogEntry>> GetLatestLogsAsync(int limit);  // Fetch the latest log entries
-    Task RollOffExpiredLogsAsync();                // Remove logs older than a certain threshold (e.g., 7 days)
+    public interface IDataService
+    {
+        /// <summary>
+        /// Writes a log entry to the database.
+        /// </summary>
+        Task WriteLogAsync(ILogEntry logEntry);
+
+        /// <summary>
+        /// Retrieves logs with optional query filters.
+        /// </summary>
+        Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions);
+    }
+
+    /// <summary>
+    /// Options for querying logs from the database.
+    /// </summary>
+    public class LogQueryOptions
+    {
+        public DateTime? StartDate { get; set; } // Filter logs from a start date
+        public DateTime? EndDate { get; set; } // Filter logs up to an end date
+        public LogLevel? LogLevel { get; set; } // Filter by log level
+        public string? Process { get; set; } // Filter by process name (e.g., "Database", "Core")
+        public LogCategory? Category { get; set; } // 
+    }
 }
