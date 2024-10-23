@@ -1,11 +1,12 @@
 
+using SpecMetrix.DataService;
 using SpecMetrix.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddHostedService<LoggingService>();
-builder.Services.AddScoped<IDataService, DataService>(); // Register your data service
+builder.Services.AddScoped<IDataService, MongoDataService>(); // Register your data service
 builder.Services.AddControllers(); // Register controllers for handling incoming log events
 
 var app = builder.Build();

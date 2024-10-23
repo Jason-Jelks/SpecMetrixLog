@@ -1,8 +1,5 @@
 ﻿using MongoDB.Driver;
 using SpecMetrix.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace SpecMetrix.DataService
 {
@@ -20,6 +17,12 @@ namespace SpecMetrix.DataService
         {
             await _logCollection.InsertOneAsync(logEntry);
         }
+
+        public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntry)
+        {
+            await _logCollection.InsertManyAsync(logEntry);
+        }
+
 
         public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {

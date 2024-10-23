@@ -3,9 +3,15 @@
     public interface IDataService
     {
         /// <summary>
-        /// Writes a log entry to the database.
+        /// Writes a single log entry to the database.
         /// </summary>
         Task WriteLogAsync(ILogEntry logEntry);
+
+
+        /// <summary>
+        /// Batch Write log entries to the database.
+        /// </summary>
+        Task WriteLogsAsync(IEnumerable<ILogEntry> logEntries);
 
         /// <summary>
         /// Retrieves logs with optional query filters.

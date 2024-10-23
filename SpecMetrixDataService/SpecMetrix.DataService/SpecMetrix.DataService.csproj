@@ -8,19 +8,19 @@
 	<!-- NuGet Package Info -->
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageId>SpecMetrix.DataService</PackageId>
-	<Version>0.1.0</Version>
+	<Version>0.1.2</Version>
 	<Authors>Jason Jelks</Authors>
 	<Company>SpecMetrix</Company>
 	<Description>SpecMetrix DataServices</Description>
 	<PackageTags>specmetrix data service mongodb</PackageTags>
 	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
-	<RepositoryUrl>https://github.com/Jason-Jelks/SpecMetrixLog/tree/main/Shared/SpecMetrixDataService</RepositoryUrl>
+	<RepositoryUrl>https://github.com/Jason-Jelks/SpecMetrixLog/tree/main/SpecMetrixDataService</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
-    <PackageReference Include="SpecMetrix.Shared" Version="0.1.1" />
+    <PackageReference Include="SpecMetrix.Shared" Version="0.1.2" />
   </ItemGroup>
 
 </Project>
