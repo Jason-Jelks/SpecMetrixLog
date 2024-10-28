@@ -1,30 +1,46 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using SpecMetrix.Interfaces;
 
-public class LoggingService : BackgroundService
+public class LoggingService : BackgroundService, ILoggingService
 {
     private readonly ConcurrentQueue<ILogEntry> _logQueue = new ConcurrentQueue<ILogEntry>();
     private readonly IDataService _dataService;
-    private readonly TimeSpan _flushInterval = TimeSpan.FromSeconds(1);
+    private readonly TimeSpan _flushInterval;
     private readonly ILogger<LoggingService> _logger;
 
     // Deduplication wait interval
     private readonly int _eventWaitInterval;
     private readonly ConcurrentDictionary<string, (ILogEntry logEntry, DateTime lastLoggedTime)> _logCache = new ConcurrentDictionary<string, (ILogEntry, DateTime)>();
 
+    /// <summary>
+    /// DI Logging Service to receive and deduplicate logs then write to MongoDB in batched process
+    /// </summary>
+    /// <param name="dataService"></param>
+    /// <param name="logger"></param>
+    /// <param name="configuration"></param>
     public LoggingService(IDataService dataService, ILogger<LoggingService> logger, IConfiguration configuration)
     {
         _dataService = dataService;
         _logger = logger;
 
-        // Load the EventWaitInterval from the configuration under Config.Logging.EventWaitInterval
+        // Load the EventWaitInterval and FlushInterval from the configuration under Config.Logging
         _eventWaitInterval = configuration.GetValue<int>("Config:Logging:EventWaitInterval", 5000); // Default to 5000 ms if not set
+        int flushIntervalMs = configuration.GetValue<int>("Config:Logging:FlushInterval", 1000);    // Default to 1000 ms (1 second) if not set
+        _flushInterval = TimeSpan.FromMilliseconds(flushIntervalMs);
     }
 
-    // Enqueue new log events
+    /// <summary>
+    /// This will put logs into queue and deduplicate rapid log entries.
+    /// This should be accessed from an API Entry point
+    /// </summary>
+    /// <param name="logEntry"></param>
     public void EnqueueLog(ILogEntry logEntry)
     {
-        var logKey = $"{logEntry.Code}-{logEntry.Process}-{logEntry.Message}";
+        // Use Code, Process, Category, and Source as the deduplication key
+        var logKey = $"{logEntry.Code}-{logEntry.Process}-{logEntry.Category}-{logEntry.Source}";
 
         if (_logCache.TryGetValue(logKey, out var cachedLogEntry))
         {
@@ -44,12 +60,12 @@ public class LoggingService : BackgroundService
         _logQueue.Enqueue(logEntry);
     }
 
-    // The worker will run in the background, processing log entries every second
+    // The worker will run in the background, processing log entries every 'flushInterval'
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(_flushInterval, stoppingToken); // Wait for 1 second
+            await Task.Delay(_flushInterval, stoppingToken); // Wait for the configured flush interval
             await ProcessLogsAsync(); // Process the logs
         }
     }
