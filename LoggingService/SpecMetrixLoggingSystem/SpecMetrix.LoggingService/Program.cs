@@ -1,16 +1,20 @@
-using SpecMetrix.DataService;
-using SpecMetrix.Interfaces;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load the JSON configuration file
+// Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
 builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
 
-// Register the LoggingService with its interface
-builder.Services.AddSingleton<ILoggingService, LoggingService>();
+// Configure Serilog from the configuration file (no need to manually specify MongoDB here)
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)  // Read Serilog settings from Specmetrix.json file
+    .Enrich.FromLogContext()                         // Add context information (e.g., thread, machine, etc.)
+    .CreateLogger();
 
-// Register IDataService and other dependencies
-builder.Services.AddScoped<IDataService, MongoDataService>();
+// Use Serilog as the logging provider for the application
+builder.Host.UseSerilog();
+
+// Register controllers and other services
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -22,4 +26,16 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers(); // Enable API endpoints
 
-app.Run();
+try
+{
+    Log.Information("Starting application");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "The application failed to start.");
+}
+finally
+{
+    Log.CloseAndFlush(); // Ensure all buffered logs are flushed before shutdown
+}
