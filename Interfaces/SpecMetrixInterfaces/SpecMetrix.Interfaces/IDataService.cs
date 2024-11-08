@@ -29,5 +29,8 @@
         public LogLevel? LogLevel { get; set; } // Filter by log level
         public string? Process { get; set; } // Filter by process name (e.g., "Database", "Core")
         public LogCategory? Category { get; set; } // 
+        public string? Source { get; set; }
+        public int? Code { get; set; }
+        public string? ClassMethod { get; set; }
     }
 }

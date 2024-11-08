@@ -46,8 +46,8 @@ public interface ILogEntry
     /// <summary>
     /// Optional contextual data (e.g., user ID, session ID)
     /// </summary>
-    IDictionary<string, string>? Context { get; set; }
-
+    IDictionary<string, string>? Metadata { get; set; }
+    
     /// <summary>
     /// Optional source (e.g., application or server name)
     /// </summary>
@@ -61,22 +61,34 @@ public interface ILogEntry
     /// <summary>
     /// Exception Message
     /// </summary>
-    ExceptionDetails? Exception { get; set; }
-}
+    public string? ExceptionMessage { get; set; }
 
-public class ExceptionDetails
-{
-    public string? Message { get; set; }
     public string? StackTrace { get; set; }
 }
 
 public enum LogCategory
 {
+    None,
+    Initialization,
     Authentication,
+    LineController,
+    SpectrometerController,
+    IoController,
+    MotionController,
     Database,
-    Spectrometer,
+    Automation,
     Integration,
+    SpectralEvaluation,
     Communication,
+    DataExchange,
+    Recipe,
+    Reporting,
+    RockwellPlc,
+    SiemensPlc,
+    OPC,
+    TcpIp,
     UI,
-    PLC
+    HMI,
+    Exception,
+    Other
 }
