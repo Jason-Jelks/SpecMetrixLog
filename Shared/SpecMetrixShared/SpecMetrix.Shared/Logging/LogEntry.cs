@@ -15,10 +15,11 @@ public class LogEntry : ILogEntry
     public string? ClassMethod { get; set; }
     public string Message { get; set; }
     public ulong Occurrences { get; set; }
-    public IDictionary<string, string>? Context { get; set; }
+    public IDictionary<string, string>? Metadata { get; set; }
     public string? Source { get; set; }
     public LogCategory? Category { get; set; }
-    public ExceptionDetails? Exception { get; set; }
+    public string? ExceptionMessage { get; set; }
+    public string? StackTrace { get; set; }
 
     public LogEntry()
     {
