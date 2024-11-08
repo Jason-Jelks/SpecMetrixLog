@@ -1,5 +1,7 @@
 ﻿using MongoDB.Driver;
 using SpecMetrix.Interfaces;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SpecMetrix.DataService
 {
@@ -18,18 +20,17 @@ namespace SpecMetrix.DataService
             await _logCollection.InsertOneAsync(logEntry);
         }
 
-        public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntry)
+        public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntries)
         {
-            await _logCollection.InsertManyAsync(logEntry);
+            await _logCollection.InsertManyAsync(logEntries);
         }
-
 
         public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {
             var filterBuilder = Builders<ILogEntry>.Filter;
             var filter = filterBuilder.Empty; // Default to no filters
 
-            // Apply filters based on query options (date range, log level, etc.)
+            // Apply filters based on query options
             if (queryOptions.StartDate.HasValue)
                 filter &= filterBuilder.Gte(log => log.Timestamp, queryOptions.StartDate.Value);
 
@@ -41,6 +42,18 @@ namespace SpecMetrix.DataService
 
             if (!string.IsNullOrEmpty(queryOptions.Process))
                 filter &= filterBuilder.Eq(log => log.Process, queryOptions.Process);
+
+            if (queryOptions.Category.HasValue)
+                filter &= filterBuilder.Eq(log => log.Category, queryOptions.Category.Value);
+
+            if (!string.IsNullOrEmpty(queryOptions.Source))
+                filter &= filterBuilder.Eq(log => log.Source, queryOptions.Source);
+
+            if (queryOptions.Code.HasValue)
+                filter &= filterBuilder.Eq(log => log.Code, queryOptions.Code.Value);
+
+            if (!string.IsNullOrEmpty(queryOptions.ClassMethod))
+                filter &= filterBuilder.Eq(log => log.ClassMethod, queryOptions.ClassMethod);
 
             return await _logCollection.Find(filter).ToListAsync();
         }
