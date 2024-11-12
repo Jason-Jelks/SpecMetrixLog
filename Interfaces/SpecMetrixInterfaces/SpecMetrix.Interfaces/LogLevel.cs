@@ -7,37 +7,42 @@
 public enum LogLevel
 {
     /// <summary>
-    /// Anything and everything you might want to know about
-    /// a running block of code.
+    /// Logs that contain the most detailed messages. These messages may contain sensitive application data.
+    /// These messages are disabled by default and should never be enabled in a production environment.
     /// </summary>
-    Verbose,
+    Trace = 0,
 
     /// <summary>
-    /// Internal system events that aren't necessarily
-    /// observable from the outside.
+    /// Logs that are used for interactive investigation during development.  These logs should primarily contain
+    /// information useful for debugging and have no long-term value.
     /// </summary>
-    Debug,
+    Debug = 1,
 
     /// <summary>
-    /// The lifeblood of operational intelligence - things
-    /// happen.
+    /// Logs that track the general flow of the application. These logs should have long-term value.
     /// </summary>
-    Information,
+    Information = 2,
 
     /// <summary>
-    /// Service is degraded or endangered.
+    /// Logs that highlight an abnormal or unexpected event in the application flow, but do not otherwise cause the
+    /// application execution to stop.
     /// </summary>
-    Warning,
+    Warning = 3,
 
     /// <summary>
-    /// Functionality is unavailable, invariants are broken
-    /// or data is lost.
+    /// Logs that highlight when the current flow of execution is stopped due to a failure. These should indicate a
+    /// failure in the current activity, not an application-wide failure.
     /// </summary>
-    Error,
+    Error = 4,
 
     /// <summary>
-    /// If you have a pager, it goes off when one of these
-    /// occurs.
+    /// Logs that describe an unrecoverable application or system crash, or a catastrophic failure that requires
+    /// immediate attention.
     /// </summary>
-    Fatal
+    Critical = 5,
+
+    /// <summary>
+    /// Not used for writing log messages. Specifies that a logging category should not write any messages.
+    /// </summary>
+    None = 6,
 }

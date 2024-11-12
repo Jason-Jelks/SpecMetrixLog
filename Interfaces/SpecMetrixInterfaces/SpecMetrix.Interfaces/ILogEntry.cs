@@ -14,6 +14,11 @@ public interface ILogEntry
     DateTime Timestamp { get; set; }
 
     /// <summary>
+    /// Namespace of sending application so that namespace can be controlled by appsettings
+    /// </summary>
+    string Namespace { get; set; }
+
+    /// <summary>
     /// Numeric code given for the event
     /// </summary>
     int Code { get; set; }
