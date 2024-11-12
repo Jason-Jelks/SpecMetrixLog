@@ -15,6 +15,11 @@ public class LogController : ControllerBase
     [HttpPost]
     public IActionResult ReceiveLog([FromBody] LogEntry logEntry)
     {
+        if (logEntry is null)
+        {
+            return BadRequest("Cannot have null log.");
+        }
+
         _loggingService.EnqueueLog(logEntry);
         return Ok("Log received and processed.");
     }

@@ -66,9 +66,22 @@ public interface ILogEntry
     /// <summary>
     /// Exception Message
     /// </summary>
-    public string? ExceptionMessage { get; set; }
+    string? ExceptionMessage { get; set; }
 
-    public string? StackTrace { get; set; }
+    /// <summary>
+    /// StackTrace from Exception
+    /// </summary>
+    string? StackTrace { get; set; }
+
+    /// <summary>
+    /// Serilog based Message template
+    /// </summary>
+    string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
+    
+    /// <summary>
+    /// Serilog based Message template values
+    /// </summary>
+    IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
 }
 
 public enum LogCategory

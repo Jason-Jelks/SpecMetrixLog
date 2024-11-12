@@ -8,6 +8,7 @@ namespace SpecMetrix.Shared.Logging;
 public class LogEntry : ILogEntry
 {
     public Guid LogId { get; set; }
+    public string Namespace { get; set; }
     public DateTime Timestamp { get; set; }
     public int Code { get; set; }
     public string Process { get; set; }
@@ -20,6 +21,12 @@ public class LogEntry : ILogEntry
     public LogCategory? Category { get; set; }
     public string? ExceptionMessage { get; set; }
     public string? StackTrace { get; set; }
+
+    /// <summary>
+    /// Message Template for Serilog based logging
+    /// </summary>
+    public string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
+    public IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
 
     public LogEntry()
     {
