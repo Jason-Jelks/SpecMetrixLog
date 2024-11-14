@@ -1,0 +1,29 @@
+﻿namespace SpecMetrix.Interfaces
+{
+    public enum LogCategory
+    {
+        None,
+        Initialization,
+        Authentication,
+        LineController,
+        SpectrometerController,
+        IoController,
+        MotionController,
+        Database,
+        Automation,
+        Integration,
+        SpectralEvaluation,
+        Communication,
+        DataExchange,
+        Recipe,
+        Reporting,
+        RockwellPlc,
+        SiemensPlc,
+        OPC,
+        TcpIp,
+        UI,
+        HMI,
+        Exception,
+        Other
+    }
+}

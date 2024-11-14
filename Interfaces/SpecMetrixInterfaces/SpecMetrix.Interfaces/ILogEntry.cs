@@ -19,6 +19,11 @@ public interface ILogEntry
     string Namespace { get; set; }
 
     /// <summary>
+    /// Machine Name of the originating event, used when events are consolidated to a centralized system
+    /// </summary>
+    string MachineName { get; set; }
+
+    /// <summary>
     /// Numeric code given for the event
     /// </summary>
     int Code { get; set; }
@@ -64,6 +69,11 @@ public interface ILogEntry
     LogCategory? Category { get; set; }
 
     /// <summary>
+    /// Optional name for a registered device 
+    /// </summary>
+    string? DeviceName { get; set; }
+
+    /// <summary>
     /// Exception Message
     /// </summary>
     string? ExceptionMessage { get; set; }
@@ -84,29 +94,3 @@ public interface ILogEntry
     IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
 }
 
-public enum LogCategory
-{
-    None,
-    Initialization,
-    Authentication,
-    LineController,
-    SpectrometerController,
-    IoController,
-    MotionController,
-    Database,
-    Automation,
-    Integration,
-    SpectralEvaluation,
-    Communication,
-    DataExchange,
-    Recipe,
-    Reporting,
-    RockwellPlc,
-    SiemensPlc,
-    OPC,
-    TcpIp,
-    UI,
-    HMI,
-    Exception,
-    Other
-}
