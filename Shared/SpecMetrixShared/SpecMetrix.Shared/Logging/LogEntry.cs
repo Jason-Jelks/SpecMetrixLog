@@ -10,6 +10,7 @@ public class LogEntry : ILogEntry
     public Guid LogId { get; set; }
     public string Namespace { get; set; }
     public DateTime Timestamp { get; set; }
+    public string MachineName { get; set; }
     public int Code { get; set; }
     public string Process { get; set; }
     public LogLevel Level { get; set; }
@@ -27,6 +28,7 @@ public class LogEntry : ILogEntry
     /// </summary>
     public string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
     public IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
+    public string? DeviceName { get; set; }
 
     public LogEntry()
     {
