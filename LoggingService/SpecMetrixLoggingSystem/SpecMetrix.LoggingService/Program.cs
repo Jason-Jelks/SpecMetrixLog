@@ -1,6 +1,7 @@
 using Serilog;
 using Serilog.Deduplication;
 using Serilog.Filters;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,7 @@ builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional
 // Retrieve deduplication settings from the configuration
 var deduplicationSettings = builder.Configuration.GetSection("Config:Logging:Deduplication").Get<DeduplicationSettings>();
 
-// Configure Serilog with deduplication filter
+// Configure Serilog from the configuration file (no need to manually specify MongoDB here)
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)           // Read Serilog settings from Specmetrix.json file
     .Filter.With(new DeduplicationFilter(deduplicationSettings)) // Add DeduplicationFilter to the pipeline
@@ -25,6 +26,13 @@ builder.Services.AddScoped<ILoggingService, LoggingService>();
 
 // Register controllers and other services
 builder.Services.AddControllers();
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 
 var app = builder.Build();
 

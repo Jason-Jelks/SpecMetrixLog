@@ -2,7 +2,7 @@
 using SpecMetrix.Shared.Logging;
 
 [ApiController]
-[Route("api/logs")]
+[Route("api/[controller]")]
 public class LogController : ControllerBase
 {
     private readonly ILoggingService _loggingService;
@@ -12,7 +12,6 @@ public class LogController : ControllerBase
         _loggingService = loggingService;
     }
 
-    [HttpPost]
     public IActionResult ReceiveLog([FromBody] LogEntry logEntry)
     {
         if (logEntry is null)
@@ -23,4 +22,5 @@ public class LogController : ControllerBase
         _loggingService.EnqueueLog(logEntry);
         return Ok("Log received and processed.");
     }
+
 }
