@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using SpecMetrix.Interfaces;
+using SpecMetrix.Shared.Logging;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -7,27 +8,27 @@ namespace SpecMetrix.DataService
 {
     public class MongoDataService : IDataService
     {
-        private readonly IMongoCollection<ILogEntry> _logCollection;
+        private readonly IMongoCollection<LogEntry> _logCollection; // Change ILogEntry to LogEntry
 
         public MongoDataService(IMongoClient mongoClient)
         {
             var database = mongoClient.GetDatabase("LoggingDB");
-            _logCollection = database.GetCollection<ILogEntry>("Logs");
+            _logCollection = database.GetCollection<LogEntry>("Logs"); // Change ILogEntry to LogEntry
         }
 
         public async Task WriteLogAsync(ILogEntry logEntry)
         {
-            await _logCollection.InsertOneAsync(logEntry);
+            await _logCollection.InsertOneAsync((LogEntry)logEntry); // Cast ILogEntry to LogEntry
         }
 
         public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntries)
         {
-            await _logCollection.InsertManyAsync(logEntries);
+            await _logCollection.InsertManyAsync((IEnumerable<LogEntry>)logEntries); // Cast IEnumerable<ILogEntry> to IEnumerable<LogEntry>
         }
 
         public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {
-            var filterBuilder = Builders<ILogEntry>.Filter;
+            var filterBuilder = Builders<LogEntry>.Filter;
             var filter = filterBuilder.Empty; // Default to no filters
 
             // Apply filters based on query options
@@ -55,7 +56,8 @@ namespace SpecMetrix.DataService
             if (!string.IsNullOrEmpty(queryOptions.ClassMethod))
                 filter &= filterBuilder.Eq(log => log.ClassMethod, queryOptions.ClassMethod);
 
-            return await _logCollection.Find(filter).ToListAsync();
+            var logs = await _logCollection.Find(filter).ToListAsync();
+            return logs.Cast<ILogEntry>(); // Cast LogEntry back to ILogEntry
         }
     }
 }
