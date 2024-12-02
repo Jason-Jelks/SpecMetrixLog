@@ -89,6 +89,11 @@ public interface ILogEntry
     string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
     
     /// <summary>
+    /// Displayed message by Serilog after transposing values from MessageTemplate and TemplateValues
+    /// </summary>
+    string RenderedMessage {  get; set; }
+
+    /// <summary>
     /// Serilog based Message template values
     /// </summary>
     IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
