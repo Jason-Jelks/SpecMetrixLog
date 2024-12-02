@@ -17,8 +17,10 @@
 		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 		<PackageReference Include="Serilog.Sinks.MongoDB" Version="7.0.0" />
-		<PackageReference Include="SpecMetrix.Shared" Version="0.1.6" />
+		<PackageReference Include="SpecMetrix.Shared" Version="0.1.7" />
 	</ItemGroup>
 
 	<ItemGroup>
