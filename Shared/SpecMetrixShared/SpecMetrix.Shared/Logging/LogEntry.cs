@@ -30,6 +30,8 @@ public class LogEntry : ILogEntry
     public IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
     public string? DeviceName { get; set; }
 
+    public string RenderedMessage { get; set; }
+
     public LogEntry()
     {
 
