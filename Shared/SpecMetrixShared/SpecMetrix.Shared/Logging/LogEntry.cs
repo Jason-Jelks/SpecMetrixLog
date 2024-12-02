@@ -1,19 +1,23 @@
-﻿using SpecMetrix.Interfaces;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using SpecMetrix.Interfaces;
 
 namespace SpecMetrix.Shared.Logging;
 
 /// <summary>
 /// Log Entry for SpecMetrix systems
 /// </summary>
+[BsonIgnoreExtraElements]
 public class LogEntry : ILogEntry
 {
+    [BsonId] // Maps to MongoDB's _id field
+    public ObjectId Id { get; set; }
     public Guid LogId { get; set; }
     public string Namespace { get; set; }
     public DateTime Timestamp { get; set; }
     public string MachineName { get; set; }
     public int Code { get; set; }
     public string Process { get; set; }
-    public LogLevel Level { get; set; }
     public string? ClassMethod { get; set; }
     public string Message { get; set; }
     public ulong Occurrences { get; set; }
@@ -31,6 +35,7 @@ public class LogEntry : ILogEntry
     public string? DeviceName { get; set; }
 
     public string RenderedMessage { get; set; }
+    public LogLevel Level { get; set; }
 
     public LogEntry()
     {
