@@ -45,32 +45,38 @@ namespace SpecMetrix.DataService
                     filter &= filterBuilder.Eq(log => log.Level, queryOptions.LogLevel.Value);
 
                 if (!string.IsNullOrEmpty(queryOptions.Process))
-                    filter &= filterBuilder.Eq(log => log.Process, queryOptions.Process);
+                    filter &= filterBuilder.Eq("Properties.Process", queryOptions.Process);
 
                 if (queryOptions.Category.HasValue)
                     filter &= filterBuilder.Eq("Properties.Category", queryOptions.Category.Value.ToString());
 
                 if (!string.IsNullOrEmpty(queryOptions.Source))
-                    filter &= filterBuilder.Eq(log => log.Source, queryOptions.Source);
+                    filter &= filterBuilder.Eq("Properties.Source", queryOptions.Source);
 
                 if (queryOptions.Code.HasValue)
-                    filter &= filterBuilder.Eq(log => log.Code, queryOptions.Code.Value);
+                    filter &= filterBuilder.Eq("Properties.Code", queryOptions.Code.Value);
 
                 if (!string.IsNullOrEmpty(queryOptions.ClassMethod))
-                    filter &= filterBuilder.Eq(log => log.ClassMethod, queryOptions.ClassMethod);
+                    filter &= filterBuilder.Eq("Properties.ClassMethod", queryOptions.ClassMethod);
 
-                var logs = await _logCollection.Find(filter).ToListAsync();
+                var query = _logCollection.Find(filter);
 
-                if(queryOptions.HowManyLogsToGet.HasValue)
-                    logs = await _logCollection.Find(filter)
-                                       .SortByDescending(log => log.Timestamp)
-                                       .Limit(queryOptions.HowManyLogsToGet)  // Use the dynamic limit here
-                                       .ToListAsync();
-                return logs; // Cast LogEntry back to ILogEntry
+                // Apply sorting and limiting if specified
+                if (queryOptions.HowManyLogsToGet.HasValue)
+                {
+                    query = query.SortByDescending(log => log.Timestamp)
+                                 .Limit(queryOptions.HowManyLogsToGet.Value);
+                }
+
+                return await query.ToListAsync();
             }
-            catch (Exception ex) { return default; }
+            catch (Exception ex)
+            {
+                // Log the exception for debugging
+                Console.WriteLine($"Error while reading logs: {ex.Message}");
+                return []; // returns empty IEnumerable<ILogEntry>
+            }
         }
 
-       
     }
 }
