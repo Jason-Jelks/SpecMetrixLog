@@ -2,226 +2,221 @@
 using MongoDB.Bson.Serialization.Attributes;
 using SpecMetrix.Interfaces;
 
-
-namespace SpecMetrix.Shared.Logging;
-
-/// <summary>
-/// Log Entry for SpecMetrix systems
-/// </summary>
-[BsonIgnoreExtraElements]
-public class LogEntry : ILogEntry
+namespace SpecMetrix.Shared.Logging
 {
-    [BsonId] // Maps to MongoDB's _id field
-    public ObjectId Id { get; set; }
-
-    public Guid LogId { get; set; }
-
-    /// <summary>
-    /// Required property
-    /// </summary>
-    public required string Message { get; set; }
-
-    /// <summary>
-    /// Required property
-    /// </summary>
-    [BsonElement("Properties")]
-    public required BsonDocument Properties { get; set; }
-
-    /// <summary>
-    /// Required property: Message Template for Serilog based logging
-    /// </summary>
-    public required string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
-
-    /// <summary>
-    /// Required property
-    /// </summary>
-    public required IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
-
-    /// <summary>
-    /// Required property - Actual displayed message
-    /// </summary>
-    public required string RenderedMessage { get; set; }
-
-    [BsonIgnore]
-    public string Namespace {
-        get
-        {
-            return Properties.Contains("Namespace") && Properties["Namespace"].IsString
-                ? Properties["Namespace"].AsString
-                : string.Empty; // Return an empty string if the field is not found or is not a string
-        }
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                Properties["Namespace"] = value; // Set the Namespace field in the Properties
-            }
-            else
-            {
-                Properties.Remove("Namespace"); // Remove the Namespace field if the value is null or empty
-            }
-        }
-    }
-
-    public DateTime Timestamp { get; set; }
-
-    [BsonIgnore]
-    public string? MachineName
+    [BsonIgnoreExtraElements]
+    public class LogEntry : ILogEntry
     {
-        get
-        {
-            return Properties.Contains("MachineName") && Properties["MachineName"].IsString
-                ? Properties["MachineName"].AsString
-                : null; // Return null if the field is not found or is not a string
-        }
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                Properties["MachineName"] = value; // Set the MachineName field in the Properties
-            }
-            else
-            {
-                Properties.Remove("MachineName"); // Remove the MachineName field if the value is null or empty
-            }
-        }
-    }
+        [BsonId]
+        public ObjectId Id { get; set; }
 
-    [BsonIgnore]
-    public int Code
-    {
-        get
-        {
-            return Properties.Contains("Code") && Properties["Code"].IsInt32
-                ? Properties["Code"].AsInt32
-                : default; // Return default value (0) if the field is not found or not an int
-        }
-        set
-        {
-            Properties["Code"] = value; // Set the Code field in the Properties
-        }
-    }
+        public Guid LogId { get; set; }
 
-    // Get and Set for Process
-    [BsonIgnore]
-    public string Process
-    {
-        get
-        {
-            return Properties.Contains("Process") && Properties["Process"].IsString
-                ? Properties["Process"].AsString
-                : default; // Return default value (null) if the field is not found or not a string
-        }
-        set
-        {
-            Properties["Process"] = value; // Set the Process field in the Properties
-        }
-    }
+        public required string Message { get; set; }
 
-    [BsonIgnore]
-    public string? ClassMethod {
-        get
+        [BsonElement("Properties")]
+        public required BsonDocument Properties { get; set; } = new BsonDocument(); // Default initialization
+
+        public required string MessageTemplate { get; set; }
+
+        public required IDictionary<string, object> TemplateValues { get; set; } = new Dictionary<string, object>();
+       
+        public required string RenderedMessage { get; set; }
+
+        [BsonIgnore]
+        public string Namespace
         {
-            return Properties.Contains("ClassMethod") && Properties["ClassMethod"].IsString
-                ? Properties["ClassMethod"].AsString
-                : null; // Return null if the field is not found or is not a string
-        }
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
+            get
             {
-                Properties["ClassMethod"] = value; // Set the ClassMethod field in the Properties
+                return Properties.Contains("Namespace") && Properties["Namespace"].IsString
+                    ? Properties["Namespace"].AsString
+                    : string.Empty;
             }
-            else
+            set
             {
-                Properties.Remove("ClassMethod"); // Remove the ClassMethod field if the value is null or empty
+                EnsurePropertiesInitialized(); // Ensure Properties is not null
+                if (!string.IsNullOrEmpty(value))
+                {
+                    Properties["Namespace"] = value;
+                }
+                else
+                {
+                    Properties.Remove("Namespace");
+                }
             }
         }
-    }
 
+        public DateTime Timestamp { get; set; }
 
-    public ulong Occurrences { get; set; }
-
-    public IDictionary<string, string>? Metadata { get; set; }
-
-    [BsonIgnore]
-    public string? Source
-    {
-        get
+        [BsonIgnore]
+        public string MachineName
         {
-            return Properties.Contains("Source") && Properties["Source"].IsString
-                ? Properties["Source"].AsString
-                : null; // Return null if the field is not found or is not a string
-        }
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
+            get
             {
-                Properties["Source"] = value; // Set the Source field in the Properties
+                return Properties.Contains("MachineName") && Properties["MachineName"].IsString
+                    ? Properties["MachineName"].AsString
+                    : string.Empty;
             }
-            else
+            set
             {
-                Properties.Remove("Source"); // Remove the Source field if the value is null or empty
+                EnsurePropertiesInitialized();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    Properties["MachineName"] = value;
+                }
+                else
+                {
+                    Properties.Remove("MachineName");
+                }
             }
         }
-    }
 
-    [BsonIgnore]
-    public LogCategory? Category
-    {
-        get
+        [BsonIgnore]
+        public int Code
         {
-            if (Properties.Contains("Category") && Properties["Category"].IsString)
+            get
             {
-                return Enum.TryParse(Properties["Category"].AsString, out LogCategory category) ? category : (LogCategory?)null;
+                return Properties.Contains("Code") && Properties["Code"].IsInt32
+                    ? Properties["Code"].AsInt32
+                    : default;
             }
-            return null;
-        }
-        set
-        {
-            if (value.HasValue)
+            set
             {
-                Properties["Category"] = value.Value.ToString(); // Set the Category field in the Properties
-            }
-            else
-            {
-                Properties.Remove("Category"); // Remove the Category field if the value is null
+                EnsurePropertiesInitialized();
+                Properties["Code"] = value;
             }
         }
-    }
 
-    [BsonIgnore]
-    public string? ExceptionMessage { get; set; }
-
-    [BsonIgnore]
-    public string? StackTrace { get; set; }
-
-    [BsonIgnore]
-    public string? DeviceName
-    {
-        get
+        [BsonIgnore]
+        public string Process
         {
-            return Properties.Contains("DeviceName") && Properties["DeviceName"].IsString
-                ? Properties["DeviceName"].AsString
-                : null; // Return null if the field is not found or is not a string
-        }
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
+            get
             {
-                Properties["DeviceName"] = value; // Set the DeviceName field in the Properties
+                return Properties.Contains("Process") && Properties["Process"].IsString
+                    ? Properties["Process"].AsString
+                    : string.Empty;
             }
-            else
+            set
             {
-                Properties.Remove("DeviceName"); // Remove the DeviceName field if the value is null or empty
+                EnsurePropertiesInitialized();
+                Properties["Process"] = value;
             }
         }
-    }
 
-    public LogLevel Level { get; set; }
+        [BsonIgnore]
+        public string? ClassMethod
+        {
+            get
+            {
+                return Properties.Contains("ClassMethod") && Properties["ClassMethod"].IsString
+                    ? Properties["ClassMethod"].AsString
+                    : null;
+            }
+            set
+            {
+                EnsurePropertiesInitialized();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    Properties["ClassMethod"] = value;
+                }
+                else
+                {
+                    Properties.Remove("ClassMethod");
+                }
+            }
+        }
 
-    public LogEntry()
-    {
+        public ulong Occurrences { get; set; }
 
+        public IDictionary<string, string>? Metadata { get; set; }
+
+        [BsonIgnore]
+        public string? Source
+        {
+            get
+            {
+                return Properties.Contains("Source") && Properties["Source"].IsString
+                    ? Properties["Source"].AsString
+                    : null;
+            }
+            set
+            {
+                EnsurePropertiesInitialized();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    Properties["Source"] = value;
+                }
+                else
+                {
+                    Properties.Remove("Source");
+                }
+            }
+        }
+
+        [BsonIgnore]
+        public LogCategory? Category
+        {
+            get
+            {
+                if (Properties.Contains("Category") && Properties["Category"].IsString)
+                {
+                    return Enum.TryParse(Properties["Category"].AsString, out LogCategory category)
+                        ? category
+                        : (LogCategory?)null;
+                }
+                return null;
+            }
+            set
+            {
+                EnsurePropertiesInitialized();
+                if (value.HasValue)
+                {
+                    Properties["Category"] = value.Value.ToString();
+                }
+                else
+                {
+                    Properties.Remove("Category");
+                }
+            }
+        }
+
+        [BsonIgnore]
+        public string? ExceptionMessage { get; set; }
+
+        [BsonIgnore]
+        public string? StackTrace { get; set; }
+
+        [BsonIgnore]
+        public string? DeviceName
+        {
+            get
+            {
+                return Properties.Contains("DeviceName") && Properties["DeviceName"].IsString
+                    ? Properties["DeviceName"].AsString
+                    : null;
+            }
+            set
+            {
+                EnsurePropertiesInitialized();
+                if (!string.IsNullOrEmpty(value))
+                {
+                    Properties["DeviceName"] = value;
+                }
+                else
+                {
+                    Properties.Remove("DeviceName");
+                }
+            }
+        }
+
+        public LogLevel Level { get; set; }
+
+        private void EnsurePropertiesInitialized()
+        {
+            if (Properties == null)
+            {
+                Properties = new BsonDocument();
+            }
+        }
     }
 }
