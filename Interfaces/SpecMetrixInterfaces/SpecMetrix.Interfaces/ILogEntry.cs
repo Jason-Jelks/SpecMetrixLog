@@ -1,5 +1,4 @@
-﻿
-namespace SpecMetrix.Interfaces;
+﻿namespace SpecMetrix.Interfaces;
 
 public interface ILogEntry
 {

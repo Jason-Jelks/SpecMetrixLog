@@ -32,5 +32,6 @@
         public string? Source { get; set; }
         public int? Code { get; set; }
         public string? ClassMethod { get; set; }
+        public int? HowManyLogsToGet { get; set; }
     }
 }

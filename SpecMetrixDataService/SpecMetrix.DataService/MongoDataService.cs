@@ -29,6 +29,8 @@ namespace SpecMetrix.DataService
 
         public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {
+            try
+            {
                 var filterBuilder = Builders<LogEntry>.Filter;
                 var filter = filterBuilder.Empty; // Default to no filters
 
@@ -46,7 +48,7 @@ namespace SpecMetrix.DataService
                     filter &= filterBuilder.Eq(log => log.Process, queryOptions.Process);
 
                 if (queryOptions.Category.HasValue)
-                    filter &= filterBuilder.Eq(log => log.Category, queryOptions.Category.Value);
+                    filter &= filterBuilder.Eq("Properties.Category", queryOptions.Category.Value.ToString());
 
                 if (!string.IsNullOrEmpty(queryOptions.Source))
                     filter &= filterBuilder.Eq(log => log.Source, queryOptions.Source);
@@ -58,7 +60,15 @@ namespace SpecMetrix.DataService
                     filter &= filterBuilder.Eq(log => log.ClassMethod, queryOptions.ClassMethod);
 
                 var logs = await _logCollection.Find(filter).ToListAsync();
-                return logs.Cast<ILogEntry>(); // Cast LogEntry back to ILogEntry
+
+                if(queryOptions.HowManyLogsToGet.HasValue)
+                    logs = await _logCollection.Find(filter)
+                                       .SortByDescending(log => log.Timestamp)
+                                       .Limit(queryOptions.HowManyLogsToGet)  // Use the dynamic limit here
+                                       .ToListAsync();
+                return logs; // Cast LogEntry back to ILogEntry
+            }
+            catch (Exception ex) { return default; }
         }
 
        

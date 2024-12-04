@@ -19,7 +19,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SpecMetrix.Interfaces" Version="0.1.9" />
+    <PackageReference Include="MongoDB.Bson" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Interfaces\SpecMetrixInterfaces\SpecMetrix.Interfaces\SpecMetrix.Interfaces.csproj" />
   </ItemGroup>
 
 </Project>
