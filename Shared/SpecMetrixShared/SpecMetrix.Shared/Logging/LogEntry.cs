@@ -2,6 +2,7 @@
 using MongoDB.Bson.Serialization.Attributes;
 using SpecMetrix.Interfaces;
 
+
 namespace SpecMetrix.Shared.Logging;
 
 /// <summary>
@@ -12,7 +13,35 @@ public class LogEntry : ILogEntry
 {
     [BsonId] // Maps to MongoDB's _id field
     public ObjectId Id { get; set; }
+
     public Guid LogId { get; set; }
+
+    /// <summary>
+    /// Required property
+    /// </summary>
+    public required string Message { get; set; }
+
+    /// <summary>
+    /// Required property
+    /// </summary>
+    [BsonElement("Properties")]
+    public required BsonDocument Properties { get; set; }
+
+    /// <summary>
+    /// Required property: Message Template for Serilog based logging
+    /// </summary>
+    public required string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
+
+    /// <summary>
+    /// Required property
+    /// </summary>
+    public required IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
+
+    /// <summary>
+    /// Required property - Actual displayed message
+    /// </summary>
+    public required string RenderedMessage { get; set; }
+
     [BsonIgnore]
     public string Namespace {
         get
@@ -33,7 +62,9 @@ public class LogEntry : ILogEntry
             }
         }
     }
+
     public DateTime Timestamp { get; set; }
+
     [BsonIgnore]
     public string? MachineName
     {
@@ -55,6 +86,7 @@ public class LogEntry : ILogEntry
             }
         }
     }
+
     [BsonIgnore]
     public int Code
     {
@@ -69,6 +101,7 @@ public class LogEntry : ILogEntry
             Properties["Code"] = value; // Set the Code field in the Properties
         }
     }
+
     // Get and Set for Process
     [BsonIgnore]
     public string Process
@@ -105,9 +138,12 @@ public class LogEntry : ILogEntry
             }
         }
     }
-    public string Message { get; set; }
+
+
     public ulong Occurrences { get; set; }
+
     public IDictionary<string, string>? Metadata { get; set; }
+
     [BsonIgnore]
     public string? Source
     {
@@ -129,6 +165,7 @@ public class LogEntry : ILogEntry
             }
         }
     }
+
     [BsonIgnore]
     public LogCategory? Category
     {
@@ -152,16 +189,13 @@ public class LogEntry : ILogEntry
             }
         }
     }
-    public string? ExceptionMessage { get; set; }
-    public string? StackTrace { get; set; }
-    [BsonElement("Properties")]
-    public BsonDocument Properties { get; set; }
 
-    /// <summary>
-    /// Message Template for Serilog based logging
-    /// </summary>
-    public string MessageTemplate { get; set; } // Holds the message template, e.g., "User {UserId} logged in from {Location} at {LoginTime}"
-    public IDictionary<string, object> TemplateValues { get; set; } // Holds the values for placeholders
+    [BsonIgnore]
+    public string? ExceptionMessage { get; set; }
+
+    [BsonIgnore]
+    public string? StackTrace { get; set; }
+
     [BsonIgnore]
     public string? DeviceName
     {
@@ -184,7 +218,6 @@ public class LogEntry : ILogEntry
         }
     }
 
-    public string RenderedMessage { get; set; }
     public LogLevel Level { get; set; }
 
     public LogEntry()
