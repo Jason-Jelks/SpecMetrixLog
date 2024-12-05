@@ -14,6 +14,13 @@ public class LogControllerTests
         var logEntry = new LogEntry
         {
             // Populate required properties of LogEntry
+            Namespace = "Unittest",
+            MachineName = "Test",
+            Process = "Testing",
+            Message = "",
+            MessageTemplate = "",
+            RenderedMessage = "",
+            TemplateValues = new Dictionary<string, object>(),
         };
 
         // Act

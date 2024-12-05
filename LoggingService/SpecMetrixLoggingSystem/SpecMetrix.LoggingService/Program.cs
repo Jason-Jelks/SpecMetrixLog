@@ -3,7 +3,15 @@ using Serilog.Deduplication;
 using Serilog.Filters;
 using System.Text.Json.Serialization;
 
+using Microsoft.Extensions.Hosting.WindowsServices;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Check if the application is running as a Windows Service
+if (WindowsServiceHelpers.IsWindowsService())
+{
+    builder.Host.UseWindowsService();
+}
 
 // Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
 builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
