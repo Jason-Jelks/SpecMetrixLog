@@ -7,31 +7,39 @@ using System.Threading.Tasks;
 
 namespace SpecMetrix.DataService
 {
+    /*
+    * 12.05.2024 jj - Changed all MongoDataService features to use MongoLogEntry (SpecMetrix.Shared 0.1.10 required)
+    *                 This is to remove conflicts for Serilog writes to MongoDB using LogEntry class.
+    *                 Note However that as of this release (0.1.10) the returning interface is still based on ILogEntry
+    *                 we may need to add a IMongoLogEntry for the consumers to manage correct implementation of all data
+    */
+
     public class MongoDataService : IDataService
     {
-        private readonly IMongoCollection<LogEntry> _logCollection; // Change ILogEntry to LogEntry
+
+        private readonly IMongoCollection<MongoLogEntry> _mongoLogCollection; // used for read processing
 
         public MongoDataService(IMongoClient mongoClient)
         {
             var database = mongoClient.GetDatabase("Logging");
-            _logCollection = database.GetCollection<LogEntry>("Logs"); // Change ILogEntry to LogEntry
+            _mongoLogCollection = database.GetCollection<MongoLogEntry>("Logs"); // added _mongoLogCollection
         }
 
-        public async Task WriteLogAsync(ILogEntry logEntry)
+        public async Task WriteLogAsync(ILogEntry MongoLogEntry)
         {
-            await _logCollection.InsertOneAsync((LogEntry)logEntry); // Cast ILogEntry to LogEntry
+            await _mongoLogCollection.InsertOneAsync((MongoLogEntry)MongoLogEntry); // Cast IMongoLogEntry to MongoLogEntry
         }
 
         public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntries)
         {
-            await _logCollection.InsertManyAsync((IEnumerable<LogEntry>)logEntries); // Cast IEnumerable<ILogEntry> to IEnumerable<LogEntry>
+            await _mongoLogCollection.InsertManyAsync((IEnumerable<MongoLogEntry>)logEntries); // Cast IEnumerable<IMongoLogEntry> to IEnumerable<MongoLogEntry>
         }
 
         public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {
             try
             {
-                var filterBuilder = Builders<LogEntry>.Filter;
+                var filterBuilder = Builders<MongoLogEntry>.Filter;
                 var filter = filterBuilder.Empty; // Default to no filters
 
                 // Apply filters based on query options
@@ -59,7 +67,7 @@ namespace SpecMetrix.DataService
                 if (!string.IsNullOrEmpty(queryOptions.ClassMethod))
                     filter &= filterBuilder.Eq("Properties.ClassMethod", queryOptions.ClassMethod);
 
-                var query = _logCollection.Find(filter);
+                var query = _mongoLogCollection.Find(filter);
 
                 // Apply sorting and limiting if specified
                 if (queryOptions.HowManyLogsToGet.HasValue)
@@ -74,7 +82,7 @@ namespace SpecMetrix.DataService
             {
                 // Log the exception for debugging
                 Console.WriteLine($"Error while reading logs: {ex.Message}");
-                return []; // returns empty IEnumerable<ILogEntry>
+                return []; // returns empty IEnumerable<IMongoLogEntry>
             }
         }
 
