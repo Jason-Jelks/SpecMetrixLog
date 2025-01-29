@@ -3,7 +3,7 @@
 cd bin
 cd release
 
-dotnet nuget push SpecMetrix.Interfaces.0.1.5.nupkg --api-key {Replace with key} --source https://api.nuget.org/v3/index.json
+dotnet nuget push SpecMetrix.Interfaces.0.1.11.nupkg --api-key {Replace with key} --source https://api.nuget.org/v3/index.json
 
 -- This is a generic example to follow for pushing a package.
 dotnet nuget push ApplicationPackage.{version from csproj}.nupkg --api-key {Replace with key} --source https://api.nuget.org/v3/index.json

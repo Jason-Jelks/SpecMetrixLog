@@ -24,6 +24,8 @@
         UI,
         HMI,
         Exception,
+        Configuration,
+        ServiceOperation,
         Other
     }
 }
