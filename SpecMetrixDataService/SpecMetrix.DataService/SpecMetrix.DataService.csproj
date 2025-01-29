@@ -8,7 +8,7 @@
 	<!-- NuGet Package Info -->
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageId>SpecMetrix.DataService</PackageId>
-	<Version>0.1.10</Version>
+	<Version>0.1.11</Version>
 	<Authors>Jason Jelks</Authors>
 	<Company>SpecMetrix</Company>
 	<Description>SpecMetrix DataServices</Description>
@@ -19,8 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
-    <PackageReference Include="SpecMetrix.Shared" Version="0.1.10" />
+    <PackageReference Include="MongoDB.Driver" Version="3.1.0" />
+    <PackageReference Include="SpecMetrix.Shared" Version="0.1.11" />
   </ItemGroup>
 
 </Project>
