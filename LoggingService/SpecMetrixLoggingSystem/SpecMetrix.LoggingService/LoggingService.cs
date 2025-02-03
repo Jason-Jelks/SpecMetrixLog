@@ -15,7 +15,7 @@ public class LoggingService : BackgroundService, ILoggingService
     /// </summary>
     public void EnqueueLog(ILogEntry logEntry)
     {
-        logEntry.Message = RenderMessageTemplate(logEntry.MessageTemplate, logEntry.TemplateValues);
+        logEntry.Message = RenderMessageTemplate(logEntry.MessageTemplate, logEntry.TemplateValues, logEntry.Message);
 
         // Create the logger context with the dynamic namespace and additional context properties
         var logger = Log.ForContext(new NamespaceEnricher(logEntry.Namespace ?? string.Empty))
@@ -25,36 +25,58 @@ public class LoggingService : BackgroundService, ILoggingService
                         .ForContext("Source", logEntry.Source)
                         .ForContext("DeviceName", logEntry.DeviceName)
                         .ForContext("MachineName", logEntry.MachineName ?? string.Empty)
-                        .ForContext("ClassMethod", logEntry.ClassMethod);
+                        .ForContext("ClassMethod", logEntry.ClassMethod)
+                        .ForContext("TemplateValues", logEntry.TemplateValues);
         
         // Log based on log level
         switch (logEntry.Level)
         {
             case SpecMetrix.Interfaces.LogLevel.Critical:
-                logger.Fatal(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Fatal(logEntry.Message);
+                else
+                    logger.Fatal(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
             case SpecMetrix.Interfaces.LogLevel.Error:
-                logger.Error(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Error(logEntry.Message);
+                else
+                    logger.Error(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
             case SpecMetrix.Interfaces.LogLevel.Warning:
-                logger.Warning(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Warning(logEntry.Message);
+                else
+                    logger.Warning(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
             case SpecMetrix.Interfaces.LogLevel.Debug:
-                logger.Debug(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Debug(logEntry.Message);
+                else
+                    logger.Debug(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
             case SpecMetrix.Interfaces.LogLevel.Trace:
-                logger.Verbose(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Verbose(logEntry.Message);
+                else
+                    logger.Verbose(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
             default:
-                logger.Information(logEntry.Message);
+                if (string.IsNullOrEmpty(logEntry.MessageTemplate))
+                    logger.Information(logEntry.Message);
+                else
+                    logger.Information(logEntry.MessageTemplate, logEntry.TemplateValues);
                 break;
         }
     }
 
 
     // Helper to render template message
-    private string RenderMessageTemplate(string template, IDictionary<string, object> values)
+    private string RenderMessageTemplate(string template, IDictionary<string, object> values, string orignalMessage)
     {
+        if (string.IsNullOrWhiteSpace(template))
+            return orignalMessage;
+
         foreach (var value in values)
         {
             template = template.Replace("{" + value.Key + "}", value.Value?.ToString() ?? string.Empty);
