@@ -1,46 +1,51 @@
-using Serilog;
+﻿using Serilog;
 using Serilog.Deduplication;
 using Serilog.Filters;
+using System.Diagnostics;
+using System.Security.Principal;
 using System.Text.Json.Serialization;
-
 using Microsoft.Extensions.Hosting.WindowsServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Check if the application is running as a Windows Service
+// 🔹 Step 1: Ensure the application is running with Administrator privileges
+if (!IsRunningAsAdministrator())
+{
+    Log.Information("Application is NOT running as Administrator. Attempting to restart with elevated privileges.");
+    RestartWithAdminPrivileges();
+    return; // Exit the non-elevated instance
+}
+
+// 🔹 Step 2: Ensure it is running as a Windows Service
 if (WindowsServiceHelpers.IsWindowsService())
 {
     builder.Host.UseWindowsService();
 }
 
-// Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
+// 🔹 Step 3: Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
 builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
 
-// Retrieve deduplication settings from the configuration
+// 🔹 Step 4: Retrieve deduplication settings from the configuration
 var deduplicationSettings = builder.Configuration.GetSection("Config:Logging:Deduplication").Get<DeduplicationSettings>();
 
-// Configure Serilog from the configuration file (no need to manually specify MongoDB here)
+// 🔹 Step 5: Configure Serilog
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)           // Read Serilog settings from Specmetrix.json file
-    .Filter.With(new DeduplicationFilter(deduplicationSettings)) // Add DeduplicationFilter to the pipeline
-    .Enrich.FromLogContext()                                 // Add context information (e.g., thread, machine, etc.)
+    .ReadFrom.Configuration(builder.Configuration)
+    .Filter.With(new DeduplicationFilter(deduplicationSettings))
+    .Enrich.FromLogContext()
     .CreateLogger();
 
-// Use Serilog as the logging provider for the application
 builder.Host.UseSerilog();
 
-// Register ILoggingService and its implementation, LoggingService, in the DI container
+// 🔹 Step 6: Register services
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 
-// Register controllers and other services
-builder.Services.AddControllers();
-
+// 🔹 Step 7: Configure JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
-
 
 var app = builder.Build();
 
@@ -53,7 +58,7 @@ app.MapControllers(); // Enable API endpoints
 
 try
 {
-    Log.Information("Starting application");
+    Log.Information("Starting SpecMetrix Logging Service with elevated privileges.");
     app.Run();
 }
 catch (Exception ex)
@@ -62,5 +67,41 @@ catch (Exception ex)
 }
 finally
 {
-    Log.CloseAndFlush(); // Ensure all buffered logs are flushed before shutdown
+    Log.CloseAndFlush(); // Ensure logs are properly written before exit
+}
+
+/// <summary>
+/// Checks if the application is running with Administrator privileges.
+/// </summary>
+static bool IsRunningAsAdministrator()
+{
+    using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+    {
+        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+}
+
+/// <summary>
+/// Attempts to restart the application with elevated privileges.
+/// </summary>
+static void RestartWithAdminPrivileges()
+{
+    var exePath = Environment.ProcessPath;
+    var startInfo = new ProcessStartInfo
+    {
+        FileName = exePath,
+        Verb = "runas", // Request administrator privileges
+        UseShellExecute = true
+    };
+
+    try
+    {
+        Process.Start(startInfo);
+        Log.Information("Restarting SpecMetrix Logging Service with Administrator privileges.");
+    }
+    catch
+    {
+        Log.Error("User denied admin privileges. SpecMetrix Logging Service will not start.");
+    }
 }
