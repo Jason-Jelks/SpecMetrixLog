@@ -5,6 +5,10 @@ using System.Diagnostics;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using LoggingService;
+using LoggingService.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,10 +41,14 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// 🔹 Step 6: Register services
-builder.Services.AddScoped<ILoggingService, LoggingService>();
+// 🔹 Step 6: Register MongoDB Settings & Ensure Database/Collection Exists
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("Config:MongoDB"));
+builder.Services.AddSingleton<MongoLogService>(); // Ensures MongoDB collection setup
 
-// 🔹 Step 7: Configure JSON serialization
+// 🔹 Step 7: Register LoggingService
+builder.Services.AddScoped<ILoggingService, LogProcessingService>();
+
+// 🔹 Step 8: Configure JSON serialization
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -48,6 +56,13 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 var app = builder.Build();
+
+// 🔹 Ensure MongoDB Collection is Properly Configured on Startup
+using (var scope = app.Services.CreateScope())
+{
+    var mongoLogService = scope.ServiceProvider.GetRequiredService<MongoLogService>();
+    mongoLogService.EnsureDatabaseAndCollection();
+}
 
 if (app.Environment.IsDevelopment())
 {

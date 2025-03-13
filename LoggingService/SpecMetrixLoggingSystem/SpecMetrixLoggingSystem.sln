@@ -6,7 +6,10 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpecMetrix.LoggingService", "SpecMetrix.LoggingService\SpecMetrix.LoggingService.csproj", "{76D37F5E-F072-4643-8686-A0B574BF9C43}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoggingServiceUnitTest", "LoggingServiceUnitTest\LoggingServiceUnitTest.csproj", "{FD7679BC-4E12-458C-8A28-1F5DC76A3228}"
+EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "LoggingServiceSetup", "LoggingServiceSetup\LoggingServiceSetup.vdproj", "{425AB6FC-F3CE-4FFE-9AA9-EC3151FF8015}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoggingService.Configuration", "LoggingService.Configuration\LoggingService.Configuration.csproj", "{0BE47547-9A0A-435F-8994-7B00A478C4C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +27,10 @@ Global
 		{FD7679BC-4E12-458C-8A28-1F5DC76A3228}.Release|Any CPU.Build.0 = Release|Any CPU
 		{425AB6FC-F3CE-4FFE-9AA9-EC3151FF8015}.Debug|Any CPU.ActiveCfg = Debug
 		{425AB6FC-F3CE-4FFE-9AA9-EC3151FF8015}.Release|Any CPU.ActiveCfg = Release
+		{0BE47547-9A0A-435F-8994-7B00A478C4C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BE47547-9A0A-435F-8994-7B00A478C4C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BE47547-9A0A-435F-8994-7B00A478C4C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BE47547-9A0A-435F-8994-7B00A478C4C5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
