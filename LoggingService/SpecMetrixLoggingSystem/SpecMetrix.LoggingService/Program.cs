@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using LoggingService;
 using LoggingService.Configuration;
+using LoggingService.Extensions.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

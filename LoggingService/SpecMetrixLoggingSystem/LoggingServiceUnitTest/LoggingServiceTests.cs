@@ -1,4 +1,5 @@
 ﻿
+using LoggingService.Extensions.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SpecMetrix.Shared.Logging;

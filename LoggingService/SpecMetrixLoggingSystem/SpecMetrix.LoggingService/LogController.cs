@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using LoggingService.Extensions.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using SpecMetrix.Shared.Logging;
 
 [ApiController]
