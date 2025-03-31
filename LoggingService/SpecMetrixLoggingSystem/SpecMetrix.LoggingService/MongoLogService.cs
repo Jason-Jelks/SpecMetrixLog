@@ -3,36 +3,63 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Options;
 using LoggingService.Configuration;
 
-
 namespace LoggingService
 {
     public class MongoLogService
     {
         private readonly IMongoDatabase _database;
-        private readonly MongoDbSettings _settings;
+        private readonly DatabaseConfig _config;
+        private readonly string _activeDatabaseName;
 
-        public MongoLogService(IOptions<MongoDbSettings> settings)
+        public MongoLogService(
+            IOptions<Dictionary<string, DatabaseConfig>> dbConfigs,
+            IOptions<RepositoryProfile> repoProfile)
         {
-            _settings = settings.Value;
-            var client = new MongoClient(_settings.ConnectionString);
-            _database = client.GetDatabase(_settings.DatabaseName);
+            var profile = repoProfile.Value;
+            var databases = dbConfigs.Value;
+
+            _config = TryConnect(profile.Primary, databases)
+                   ?? TryConnect(profile.Mode == "Failover" ? profile.Secondary : null, databases)
+                   ?? throw new InvalidOperationException("Unable to connect to primary or secondary MongoDB instance.");
+
+            var client = new MongoClient(_config.ConnectionString);
+            _database = client.GetDatabase(_config.DatabaseName);
+            _activeDatabaseName = _config.DatabaseName;
 
             EnsureDatabaseAndCollection();
         }
 
-        /// <summary>
-        /// Ensures that the MongoDB database and time-series collection exist and match the current configuration.
-        /// </summary>
+        private DatabaseConfig? TryConnect(string? dbKey, Dictionary<string, DatabaseConfig> configs)
+        {
+            if (string.IsNullOrWhiteSpace(dbKey) || !configs.TryGetValue(dbKey, out var config))
+                return null;
+
+            if (!string.Equals(config.Type, "MongoDb", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            try
+            {
+                var client = new MongoClient(config.ConnectionString);
+                var pingResult = client.GetDatabase(config.DatabaseName).RunCommand<BsonDocument>(new BsonDocument("ping", 1));
+                return pingResult != null ? config : null;
+            }
+            catch
+            {
+                Console.WriteLine($"Failed to connect to MongoDB database '{dbKey}'");
+                return null;
+            }
+        }
+
         public void EnsureDatabaseAndCollection()
         {
             var collections = _database.ListCollectionNames().ToList();
 
-            if (collections.Contains(_settings.CollectionName))
+            if (collections.Contains(_config.CollectionName))
             {
                 if (HasCollectionChanged())
                 {
-                    Console.WriteLine($"Detected changes in MongoDB time-series settings for '{_settings.CollectionName}'");
-                    _database.DropCollection(_settings.CollectionName);
+                    Console.WriteLine($"Detected changes in MongoDB time-series settings for '{_config.CollectionName}'");
+                    _database.DropCollection(_config.CollectionName);
                     CreateTimeSeriesCollection();
                 }
             }
@@ -42,12 +69,15 @@ namespace LoggingService
             }
         }
 
-        /// <summary>
-        /// Checks if the collection's settings have changed.
-        /// </summary>
         private bool HasCollectionChanged()
         {
-            var collectionInfo = _database.ListCollections(new ListCollectionsOptions { Filter = new BsonDocument("name", _settings.CollectionName) }).FirstOrDefault();
+            var collectionInfo = _database
+                .ListCollections(new ListCollectionsOptions
+                {
+                    Filter = new BsonDocument("name", _config.CollectionName)
+                })
+                .FirstOrDefault();
+
             if (collectionInfo == null) return false;
 
             var options = collectionInfo["options"].AsBsonDocument;
@@ -55,28 +85,25 @@ namespace LoggingService
             var expireAfter = options.Contains("expireAfterSeconds") ? options["expireAfterSeconds"].ToInt32() : 0;
 
             return timeSeriesOptions == null ||
-                   timeSeriesOptions["granularity"].AsString != _settings.Granularity ||
-                   timeSeriesOptions["timeField"].AsString != _settings.TimeField ||
-                   expireAfter != _settings.ExpireAfterDays * 86400; // Convert days to seconds
+                   timeSeriesOptions["granularity"].AsString != (_config.Granularity ?? "minutes") ||
+                   timeSeriesOptions["timeField"].AsString != (_config.TimeField ?? "Timestamp") ||
+                   expireAfter != (_config.ExpireAfterDays) * 86400;
         }
 
-        /// <summary>
-        /// Creates a MongoDB time-series collection with the configured settings.
-        /// </summary>
         private void CreateTimeSeriesCollection()
         {
             var options = new CreateCollectionOptions
             {
                 TimeSeriesOptions = new TimeSeriesOptions(
-                    timeField: _settings.TimeField,
-                    metaField: _settings.MetaField,
-                    granularity: Enum.Parse<TimeSeriesGranularity>(_settings.Granularity, true)
+                    timeField: _config.TimeField ?? "Timestamp",
+                    metaField: _config.MetaField ?? "metadata",
+                    granularity: Enum.Parse<TimeSeriesGranularity>(_config.Granularity ?? "minutes", true)
                 ),
-                ExpireAfter = TimeSpan.FromDays(_settings.ExpireAfterDays)
+                ExpireAfter = TimeSpan.FromDays(_config.ExpireAfterDays)
             };
 
-            _database.CreateCollection(_settings.CollectionName, options);
-            Console.WriteLine($"MongoDB Time-Series Collection '{_settings.CollectionName}' Created Successfully!");
+            _database.CreateCollection(_config.CollectionName, options);
+            Console.WriteLine($"MongoDB Time-Series Collection '{_config.CollectionName}' Created Successfully in '{_activeDatabaseName}'");
         }
     }
 }

@@ -29,6 +29,8 @@ if (WindowsServiceHelpers.IsWindowsService())
 
 // 🔹 Step 3: Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
 builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
+builder.Services.Configure<Dictionary<string, DatabaseConfig>>(builder.Configuration.GetSection("Databases"));
+builder.Services.Configure<RepositoryProfile>(builder.Configuration.GetSection("LoggingRepositoryProfile"));
 
 // 🔹 Step 4: Retrieve deduplication settings from the configuration
 var deduplicationSettings = builder.Configuration.GetSection("Config:Logging:Deduplication").Get<DeduplicationSettings>();
@@ -43,7 +45,6 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // 🔹 Step 6: Register MongoDB Settings & Ensure Database/Collection Exists
-builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("Config:MongoDB"));
 builder.Services.AddSingleton<MongoLogService>(); // Ensures MongoDB collection setup
 
 // 🔹 Step 7: Register LoggingService

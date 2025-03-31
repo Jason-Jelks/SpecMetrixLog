@@ -1,9 +1,10 @@
 ﻿namespace LoggingService.Configuration
 {
-    public class MongoDbSettings
+    public class DatabaseConfig
     {
-        public string ConnectionString { get; set; } = "mongodb://localhost:27017";
-        public string DatabaseName { get; set; } = "Logging";
+        public string Type { get; set; } = "MongoDb";
+        public string ConnectionString { get; set; } = string.Empty;
+        public string DatabaseName { get; set; } = string.Empty;
         public string CollectionName { get; set; } = "Logs";
         public string TimeField { get; set; } = "Timestamp";
         public string MetaField { get; set; } = "metadata";
