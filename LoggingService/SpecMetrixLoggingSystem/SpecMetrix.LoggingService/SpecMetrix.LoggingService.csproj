@@ -14,7 +14,7 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.3" />
-		<PackageReference Include="MongoDB.Driver" Version="3.2.1" />
+		<PackageReference Include="MongoDB.Driver" Version="3.3.0" />
 		<PackageReference Include="Serilog" Version="4.2.0" />
 		<PackageReference Include="Serilog.Deduplication" Version="1.0.2" />
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />

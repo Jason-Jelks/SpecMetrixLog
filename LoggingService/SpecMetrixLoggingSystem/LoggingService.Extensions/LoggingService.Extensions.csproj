@@ -11,7 +11,7 @@
 		<Version>1.0.2</Version>
 		<Authors>Jason Jelks</Authors>
 		<Company>Industrial Physics</Company>
-		<PackageReadmeFile>Readme.MD</PackageReadmeFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Product>LoggingService.Extensions</Product>
 		<Description>Shared logging DI and Serilog integration wrapper for SpecMetrix microservices.</Description>
 		<Copyright>Copyright © SpecMetrix 2025</Copyright>
@@ -22,6 +22,10 @@
 		<PackageTags>logging serilog specmetrix</PackageTags>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+	
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
