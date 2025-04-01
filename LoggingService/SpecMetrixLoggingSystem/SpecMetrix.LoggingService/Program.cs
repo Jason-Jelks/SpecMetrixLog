@@ -1,14 +1,11 @@
 ﻿using Serilog;
-using Serilog.Deduplication;
-using Serilog.Filters;
 using System.Diagnostics;
 using System.Security.Principal;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting.WindowsServices;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using LoggingService;
 using LoggingService.Configuration;
+using LoggingService.Extensions;
 using LoggingService.Extensions.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,30 +24,25 @@ if (WindowsServiceHelpers.IsWindowsService())
     builder.Host.UseWindowsService();
 }
 
-// 🔹 Step 3: Load the JSON configuration file from "C:\Configurations\Specmetrix.json"
+// 🔹 Step 3: Load the JSON configuration file from "C:\\Configurations\\Specmetrix.json"
 builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
+
+// 🔹 Step 4: Configure repository-based MongoDB logging
 builder.Services.Configure<Dictionary<string, DatabaseConfig>>(builder.Configuration.GetSection("Databases"));
 builder.Services.Configure<RepositoryProfile>(builder.Configuration.GetSection("LoggingRepositoryProfile"));
 
-// 🔹 Step 4: Retrieve deduplication settings from the configuration
-var deduplicationSettings = builder.Configuration.GetSection("Config:Logging:Deduplication").Get<DeduplicationSettings>();
-
-// 🔹 Step 5: Configure Serilog
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Filter.With(new DeduplicationFilter(deduplicationSettings))
-    .Enrich.FromLogContext()
-    .CreateLogger();
-
+// 🔹 Step 5: Register Serilog, ISerilogWrapper, and optional default logger (disabled here)
+builder.Services.AddSpecMetrixLogging(builder.Configuration, builder.Environment, registerILoggingService: false);
 builder.Host.UseSerilog();
 
-// 🔹 Step 6: Register MongoDB Settings & Ensure Database/Collection Exists
-builder.Services.AddSingleton<MongoLogService>(); // Ensures MongoDB collection setup
+// 🔹 Step 6: Add MongoDB bootstrap service
+builder.Services.AddSingleton<MongoLogService>();
 
-// 🔹 Step 7: Register LoggingService
+// 🔹 Step 7: Register your actual log processing background service
+builder.Services.AddHostedService<LogProcessingService>();
 builder.Services.AddScoped<ILoggingService, LogProcessingService>();
 
-// 🔹 Step 8: Configure JSON serialization
+// 🔹 Step 8: Configure controller JSON options
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -59,7 +51,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 var app = builder.Build();
 
-// 🔹 Ensure MongoDB Collection is Properly Configured on Startup
+// 🔹 Step 9: Ensure MongoDB collection exists on startup
 using (var scope = app.Services.CreateScope())
 {
     var mongoLogService = scope.ServiceProvider.GetRequiredService<MongoLogService>();
@@ -71,7 +63,7 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.MapControllers(); // Enable API endpoints
+app.MapControllers();
 
 try
 {
@@ -84,7 +76,7 @@ catch (Exception ex)
 }
 finally
 {
-    Log.CloseAndFlush(); // Ensure logs are properly written before exit
+    Log.CloseAndFlush();
 }
 
 /// <summary>
@@ -108,7 +100,7 @@ static void RestartWithAdminPrivileges()
     var startInfo = new ProcessStartInfo
     {
         FileName = exePath,
-        Verb = "runas", // Request administrator privileges
+        Verb = "runas",
         UseShellExecute = true
     };
 
