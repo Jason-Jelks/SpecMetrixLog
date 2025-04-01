@@ -8,9 +8,10 @@
 		<!-- NuGet packaging properties -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageId>LoggingService.Extensions</PackageId>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 		<Authors>Jason Jelks</Authors>
 		<Company>Industrial Physics</Company>
+		<PackageReadmeFile>Readme.MD</PackageReadmeFile>
 		<Product>LoggingService.Extensions</Product>
 		<Description>Shared logging DI and Serilog integration wrapper for SpecMetrix microservices.</Description>
 		<Copyright>Copyright © SpecMetrix 2025</Copyright>
