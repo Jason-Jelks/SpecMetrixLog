@@ -5,11 +5,11 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>dotnet-SpecMetrix.LoggingService-6a89c6a2-8175-414d-9ee2-82a4df103573</UserSecretsId>
-		<Version>0.3.0</Version>
+		<Version>0.4.0</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="LoggingService.Extensions" Version="1.0.0" />
+		<PackageReference Include="LoggingService.Extensions" Version="1.0.2" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
