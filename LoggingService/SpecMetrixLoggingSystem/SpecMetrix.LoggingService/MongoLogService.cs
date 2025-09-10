@@ -105,5 +105,35 @@ namespace LoggingService
             _database.CreateCollection(_config.CollectionName, options);
             Console.WriteLine($"MongoDB Time-Series Collection '{_config.CollectionName}' Created Successfully in '{_activeDatabaseName}'");
         }
+
+        // New method: verifies that Mongo is reachable and writable
+        public async Task<(bool ok, string? error)> VerifyWriteAsync(CancellationToken ct)
+        {
+            try
+            {
+                await _database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: ct);
+
+                var coll = _database
+                    .GetCollection<BsonDocument>(_config.CollectionName)
+                    .WithWriteConcern(WriteConcern.W1);
+
+                var id = ObjectId.GenerateNewId();
+                var doc = new BsonDocument
+                {
+                    { "_id", id },
+                    { "type", "healthcheck" },
+                    { "ts", DateTime.UtcNow }
+                };
+
+                await coll.InsertOneAsync(doc, cancellationToken: ct);
+                _ = await coll.DeleteOneAsync(Builders<BsonDocument>.Filter.Eq("_id", id), ct);
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
     }
 }
