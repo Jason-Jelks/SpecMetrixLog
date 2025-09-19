@@ -2,14 +2,19 @@
 using MongoDB.Driver;
 using Microsoft.Extensions.Options;
 using LoggingService.Configuration;
+using LoggingService.Health;
 
 namespace LoggingService
 {
-    public class MongoLogService
+    public class MongoLogService : IMongoWriteVerifier
     {
         private readonly IMongoDatabase _database;
         private readonly DatabaseConfig _config;
         private readonly string _activeDatabaseName;
+
+        // Health-check collection and per-instance document id (idempotent upsert target)
+        private readonly string _healthCollectionName = "_health";
+        private readonly string _instanceId = $"{System.Environment.MachineName}-{System.Environment.ProcessId}";
 
         public MongoLogService(
             IOptions<Dictionary<string, DatabaseConfig>> dbConfigs,
@@ -27,6 +32,7 @@ namespace LoggingService
             _activeDatabaseName = _config.DatabaseName;
 
             EnsureDatabaseAndCollection();
+            EnsureHealthCollection();
         }
 
         private DatabaseConfig? TryConnect(string? dbKey, Dictionary<string, DatabaseConfig> configs)
@@ -40,7 +46,8 @@ namespace LoggingService
             try
             {
                 var client = new MongoClient(config.ConnectionString);
-                var pingResult = client.GetDatabase(config.DatabaseName).RunCommand<BsonDocument>(new BsonDocument("ping", 1));
+                var pingResult = client.GetDatabase(config.DatabaseName)
+                    .RunCommand<BsonDocument>(new BsonDocument("ping", 1));
                 return pingResult != null ? config : null;
             }
             catch
@@ -84,10 +91,10 @@ namespace LoggingService
             var timeSeriesOptions = options.Contains("timeseries") ? options["timeseries"].AsBsonDocument : null;
             var expireAfter = options.Contains("expireAfterSeconds") ? options["expireAfterSeconds"].ToInt32() : 0;
 
-            return timeSeriesOptions == null ||
-                   timeSeriesOptions["granularity"].AsString != (_config.Granularity ?? "minutes") ||
-                   timeSeriesOptions["timeField"].AsString != (_config.TimeField ?? "Timestamp") ||
-                   expireAfter != (_config.ExpireAfterDays) * 86400;
+            return timeSeriesOptions == null
+                   || timeSeriesOptions["granularity"].AsString != (_config.Granularity ?? "minutes")
+                   || timeSeriesOptions["timeField"].AsString != (_config.TimeField ?? "Timestamp")
+                   || expireAfter != (_config.ExpireAfterDays) * 86400;
         }
 
         private void CreateTimeSeriesCollection()
@@ -106,29 +113,44 @@ namespace LoggingService
             Console.WriteLine($"MongoDB Time-Series Collection '{_config.CollectionName}' Created Successfully in '{_activeDatabaseName}'");
         }
 
-        // New method: verifies that Mongo is reachable and writable
-        public async Task<(bool ok, string? error)> VerifyWriteAsync(CancellationToken ct)
+        private void EnsureHealthCollection()
+        {
+            var collections = _database.ListCollectionNames().ToList();
+            if (!collections.Contains(_healthCollectionName))
+            {
+                _database.CreateCollection(_healthCollectionName);
+                Console.WriteLine($"MongoDB Health Collection '{_healthCollectionName}' Created Successfully in '{_activeDatabaseName}'");
+            }
+        }
+
+        // Implements IMongoWriteVerifier for health checks
+        // Uses idempotent upsert into a dedicated _health collection (no delete, minimal churn)
+        public async Task<(bool ok, string error)> VerifyWriteAsync(CancellationToken ct)
         {
             try
             {
-                await _database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: ct);
+                // 1) Connectivity check
+                await _database.RunCommandAsync<BsonDocument>(
+                    new BsonDocument("ping", 1),
+                    cancellationToken: ct);
 
+                // 2) Acknowledged single-document upsert proves write-path health
                 var coll = _database
-                    .GetCollection<BsonDocument>(_config.CollectionName)
+                    .GetCollection<BsonDocument>(_healthCollectionName)
                     .WithWriteConcern(WriteConcern.W1);
 
-                var id = ObjectId.GenerateNewId();
-                var doc = new BsonDocument
-                {
-                    { "_id", id },
-                    { "type", "healthcheck" },
-                    { "ts", DateTime.UtcNow }
-                };
+                var filter = Builders<BsonDocument>.Filter.Eq("_id", _instanceId);
+                var update = Builders<BsonDocument>.Update
+                    .SetOnInsert("createdUtc", DateTime.UtcNow)
+                    .CurrentDate("lastUtc")
+                    .Inc("seq", 1);
 
-                await coll.InsertOneAsync(doc, cancellationToken: ct);
-                _ = await coll.DeleteOneAsync(Builders<BsonDocument>.Filter.Eq("_id", id), ct);
+                var options = new UpdateOptions { IsUpsert = true };
 
-                return (true, null);
+                var result = await coll.UpdateOneAsync(filter, update, options, ct);
+
+                var acknowledged = result.IsAcknowledged && (result.MatchedCount == 1 || result.UpsertedId != null);
+                return acknowledged ? (true, string.Empty) : (false, "Write not acknowledged");
             }
             catch (Exception ex)
             {
