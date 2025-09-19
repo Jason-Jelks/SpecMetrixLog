@@ -10,50 +10,57 @@ using LoggingService;
 using LoggingService.Configuration;
 using LoggingService.Extensions;
 using LoggingService.Extensions.Interfaces;
-using LoggingService.Health; // for MongoWriteHealthCheck
+using LoggingService.Health; // MongoWriteHealthCheck
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Step 1: Ensure the application is running with Administrator privileges
+// --- Elevation: require admin for service cert & reserved ports ---
 if (!IsRunningAsAdministrator())
 {
     Log.Information("Application is NOT running as Administrator. Attempting to restart with elevated privileges.");
     RestartWithAdminPrivileges();
-    return; // Exit the non-elevated instance
+    return; // exit non-elevated instance
 }
 
-// Step 2: Ensure it is running as a Windows Service
+// --- Run as Windows Service when hosted that way ---
 if (WindowsServiceHelpers.IsWindowsService())
 {
     builder.Host.UseWindowsService();
 }
 
-// Step 3: Load the JSON configuration file from "C:\\Configurations\\Specmetrix.json"
-builder.Configuration.AddJsonFile(@"C:\Configurations\Specmetrix.json", optional: false, reloadOnChange: true);
+// --- Configuration: external JSON (mongo + repo profiles, etc.) ---
+builder.Configuration.AddJsonFile(
+    @"C:\Configurations\Specmetrix.json",
+    optional: false,
+    reloadOnChange: true);
 
-// Step 4: Configure repository-based MongoDB logging
+// --- Bind repo/database config for Mongo ---
 builder.Services.Configure<Dictionary<string, DatabaseConfig>>(builder.Configuration.GetSection("Databases"));
 builder.Services.Configure<RepositoryProfile>(builder.Configuration.GetSection("LoggingRepositoryProfile"));
 
-// Step 5: Register Serilog, ISerilogWrapper, and optional default logger (disabled here)
+// --- Serilog & logging helpers (no legacy ILoggingService registration here) ---
 builder.Services.AddSpecMetrixLogging(builder.Configuration, builder.Environment, registerILoggingService: false);
 builder.Host.UseSerilog();
 
-// Step 6: Add MongoDB bootstrap service
+// --- Mongo bootstrap & write verifier (used by health checks) ---
 builder.Services.AddSingleton<MongoLogService>();
+builder.Services.AddSingleton<IMongoWriteVerifier, MongoLogService>();
 
-// Step 7: Register your actual log processing background service
+builder.Services.AddSingleton<SpecMetrix.LoggingService.Services.LoggingQueueService>();
+builder.Services.AddSingleton<ILoggingService>(sp => sp.GetRequiredService<SpecMetrix.LoggingService.Services.LoggingQueueService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SpecMetrix.LoggingService.Services.LoggingQueueService>());
+
+// --- Background pipeline (if you’re consuming from a queue, keep this) ---
 builder.Services.AddHostedService<LogProcessingService>();
-builder.Services.AddScoped<ILoggingService, LogProcessingService>();
 
-// Step 8: Configure controller JSON options
+// --- Controllers (for /api/logs) & JSON enum casing ---
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// Step 9: Health checks (readiness depends on Mongo write ability)
+// --- Health (readiness = can write to Mongo) ---
 builder.Services.AddHealthChecks()
     .AddCheck<MongoWriteHealthCheck>(
         name: "mongo_write",
@@ -62,11 +69,11 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Ensure MongoDB collection exists on startup
+// Ensure database/collection exists up front
 using (var scope = app.Services.CreateScope())
 {
-    var mongoLogService = scope.ServiceProvider.GetRequiredService<MongoLogService>();
-    mongoLogService.EnsureDatabaseAndCollection();
+    var mongo = scope.ServiceProvider.GetRequiredService<MongoLogService>();
+    mongo.EnsureDatabaseAndCollection();
 }
 
 if (app.Environment.IsDevelopment())
@@ -74,9 +81,10 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+// Map controllers (this picks up LogsController at /api/logs)
 app.MapControllers();
 
-// Health endpoints
+// Health endpoint
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = _ => true,
@@ -86,22 +94,24 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 try
 {
     Log.Information("Starting SpecMetrix Logging Service with elevated privileges.");
-    app.Run();
+    app.Run();   // Kestrel endpoints are bound via appsettings.json (e.g., https://127.0.0.1:5777)
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "The application failed to start.");
+    Log.Fatal(ex, "The SpecMetrix Logging Service failed to start.");
 }
 finally
 {
     Log.CloseAndFlush();
 }
 
+// ---------------- helpers ----------------
+
 static bool IsRunningAsAdministrator()
 {
-    using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+    using (var identity = WindowsIdentity.GetCurrent())
     {
-        WindowsPrincipal principal = new WindowsPrincipal(identity);
+        var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 }
@@ -109,7 +119,7 @@ static bool IsRunningAsAdministrator()
 static void RestartWithAdminPrivileges()
 {
     var exePath = Environment.ProcessPath;
-    var startInfo = new ProcessStartInfo
+    var psi = new ProcessStartInfo
     {
         FileName = exePath,
         Verb = "runas",
@@ -118,7 +128,7 @@ static void RestartWithAdminPrivileges()
 
     try
     {
-        Process.Start(startInfo);
+        Process.Start(psi);
         Log.Information("Restarting SpecMetrix Logging Service with Administrator privileges.");
     }
     catch
@@ -135,13 +145,13 @@ static Task WriteHealthJsonAsync(HttpContext context, HealthReport report)
         status = report.Status.ToString(),
         totalDurationMs = (long)report.TotalDuration.TotalMilliseconds,
         entries = report.Entries.ToDictionary(
-            kvp => kvp.Key,
-            kvp => new
+            e => e.Key,
+            e => new
             {
-                status = kvp.Value.Status.ToString(),
-                description = kvp.Value.Description,
-                durationMs = (long)kvp.Value.Duration.TotalMilliseconds,
-                data = kvp.Value.Data
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                durationMs = (long)e.Value.Duration.TotalMilliseconds,
+                data = e.Value.Data
             })
     };
     return context.Response.WriteAsync(JsonSerializer.Serialize(payload));

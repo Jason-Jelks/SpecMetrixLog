@@ -1,27 +1,36 @@
 ﻿using LoggingService.Extensions.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using SpecMetrix.Shared.Logging;
+using SpecMetrix.Shared.Logging;          // LogEntry
 
-[ApiController]
-[Route("api/[controller]")]
-public class LogController : ControllerBase
+namespace SpecMetrix.LoggingService.Controllers
 {
-    private readonly ILoggingService _loggingService;
-
-    public LogController(ILoggingService loggingService)
+    [ApiController]
+    [Route("api/[controller]")]            // /api/log
+    public sealed class LogController : ControllerBase
     {
-        _loggingService = loggingService;
-    }
+        private readonly ILoggingService _logging;
 
-    public IActionResult ReceiveLog([FromBody] LogEntry logEntry)
-    {
-        if (logEntry is null)
+        public LogController(ILoggingService logging)
         {
-            return BadRequest("Cannot have null log.");
+            _logging = logging ?? throw new ArgumentNullException(nameof(logging));
         }
 
-        _loggingService.EnqueueLog(logEntry);
-        return Ok("Log received and processed.");
-    }
+        /// <summary>
+        /// Accept a single log entry and enqueue it for processing.
+        /// NOTE: Production contract is singular controller: /api/log
+        /// </summary>
+        [HttpPost]
+        public IActionResult ReceiveLog([FromBody] LogEntry entry)
+        {
+            if (entry == null)
+                return BadRequest("Cannot have null log.");
 
+            // If SpecMetrix.Shared.Logging.LogEntry implements SpecMetrix.Interfaces.ILogEntry,
+            // this cast is a no-op; otherwise, adapt as needed.
+            _logging.EnqueueLog(entry);
+
+            // Keep response simple & fast for callers; they don't need to wait on storage.
+            return Ok("Log received and processed.");
+        }
+    }
 }
