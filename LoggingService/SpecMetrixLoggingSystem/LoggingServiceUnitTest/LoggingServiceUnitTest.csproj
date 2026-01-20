@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
@@ -14,19 +14,28 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="LoggingService.Extensions" Version="1.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LoggingService.Extensions\LoggingService.Extensions.csproj" />
     <ProjectReference Include="..\SpecMetrix.LoggingService\SpecMetrix.LoggingService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SpecMetrix.Interfaces">
+      <HintPath>..\..\..\Interfaces\SpecMetrixInterfaces\SpecMetrix.Interfaces\bin\Release\net10.0\SpecMetrix.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="SpecMetrix.Shared">
+      <HintPath>..\..\..\Shared\SpecMetrixShared\SpecMetrix.Shared\bin\Release\net10.0\SpecMetrix.Shared.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

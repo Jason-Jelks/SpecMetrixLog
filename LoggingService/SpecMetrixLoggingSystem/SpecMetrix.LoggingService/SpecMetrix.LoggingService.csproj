@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>dotnet-SpecMetrix.LoggingService-6a89c6a2-8175-414d-9ee2-82a4df103573</UserSecretsId>
@@ -9,26 +9,34 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.3" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.3" />
-		<PackageReference Include="MongoDB.Driver" Version="3.3.0" />
-		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.2" />
+		<PackageReference Include="MongoDB.Driver" Version="3.6.0" />
+		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="Serilog.Deduplication" Version="1.0.2" />
-		<PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
-		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
-		<PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-		<PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+		<PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="10.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Serilog.Sinks.EventLog" Version="4.0.0" />
-		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-		<PackageReference Include="Serilog.Sinks.MongoDB" Version="7.0.0" />
-		<PackageReference Include="SpecMetrix.Shared" Version="0.1.11" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="Serilog.Sinks.MongoDB" Version="7.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\LoggingService.Configuration\LoggingService.Configuration.csproj" />
 	  <ProjectReference Include="..\LoggingService.Extensions\LoggingService.Extensions.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="SpecMetrix.Interfaces">
+	    <HintPath>..\..\..\Interfaces\SpecMetrixInterfaces\SpecMetrix.Interfaces\bin\Release\net10.0\SpecMetrix.Interfaces.dll</HintPath>
+	  </Reference>
+	  <Reference Include="SpecMetrix.Shared">
+	    <HintPath>..\..\..\Shared\SpecMetrixShared\SpecMetrix.Shared\bin\Release\net10.0\SpecMetrix.Shared.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 
 </Project>

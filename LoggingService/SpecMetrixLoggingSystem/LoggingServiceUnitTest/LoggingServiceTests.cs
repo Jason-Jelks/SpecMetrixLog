@@ -13,6 +13,7 @@ public class LogControllerTests
         // Arrange
         var mockLoggingService = new Mock<ILoggingService>();
         var controller = new LogController(mockLoggingService.Object);
+
         var logEntry = new LogEntry
         {
             Namespace = "Unittest",
@@ -21,7 +22,12 @@ public class LogControllerTests
             Message = "Test message",
             MessageTemplate = "Test message",
             RenderedMessage = "Test message",
-            TemplateValues = new Dictionary<string, object>()
+            TemplateValues = new Dictionary<string, object>(),
+            Metadata = new Dictionary<string, string>
+            {
+                // Optional: verify fallback normalization works if EventId isn't set
+                { "eventId", "CFG_PARSE_001" }
+            }
         };
 
         // Act
@@ -31,8 +37,11 @@ public class LogControllerTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Equal("Log received and processed.", okResult.Value);
 
-        // Verify that EnqueueLog was called once
+        // Verify that EnqueueLog was called once (with some ILogEntry)
         mockLoggingService.Verify(s => s.EnqueueLog(It.IsAny<ILogEntry>()), Times.Once);
+
+        // Optional: ensure the controller normalized EventId from metadata
+        Assert.Equal("CFG_PARSE_001", logEntry.EventId);
     }
 
     [Fact]
@@ -43,7 +52,7 @@ public class LogControllerTests
         var controller = new LogController(mockLoggingService.Object);
 
         // Act
-        var result = controller.ReceiveLog(null);
+        IActionResult result = controller.ReceiveLog(entry: null!);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);

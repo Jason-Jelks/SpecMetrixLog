@@ -3,6 +3,11 @@
 public interface ILogEntry
 {
     /// <summary>
+    /// Event Identifier 
+    /// </summary>
+    string? EventId { get; set; }
+
+    /// <summary>
     /// Unique identifier for the log entry
     /// </summary>
     Guid LogId { get; set; }
