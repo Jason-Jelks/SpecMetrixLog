@@ -11,6 +11,7 @@ using LoggingService.Configuration;
 using LoggingService.Extensions;
 using LoggingService.Extensions.Interfaces;
 using LoggingService.Health; // MongoWriteHealthCheck
+using SpecMetrix.LoggingService.Services; // LoggingQueueService, LoggingIngestionOptions, LoggingStorageInitializer
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,14 +47,18 @@ builder.Host.UseSerilog();
 builder.Services.AddSingleton<MongoLogService>();
 builder.Services.AddSingleton<IMongoWriteVerifier, MongoLogService>();
 
-builder.Services.AddSingleton<SpecMetrix.LoggingService.Services.LoggingQueueService>();
-builder.Services.AddSingleton<ILoggingService>(sp => sp.GetRequiredService<SpecMetrix.LoggingService.Services.LoggingQueueService>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<SpecMetrix.LoggingService.Services.LoggingQueueService>());
+// --- Ingestion pipeline options (DI-configurable) ---
+builder.Services.Configure<LoggingIngestionOptions>(builder.Configuration.GetSection("Config:Logging:Ingestion"));
 
-// --- Background pipeline (if you’re consuming from a queue, keep this) ---
-builder.Services.AddHostedService<LogProcessingService>();
+// --- Queue-based ingestion pipeline: ONE hosted service ---
+builder.Services.AddSingleton<LoggingQueueService>();
+builder.Services.AddSingleton<ILoggingService>(sp => sp.GetRequiredService<LoggingQueueService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<LoggingQueueService>());
 
-// --- Controllers (for /api/logs) & JSON enum casing ---
+// --- Deterministic Mongo init ONCE at startup ---
+builder.Services.AddHostedService<LoggingStorageInitializer>();
+
+// --- Controllers & JSON enum casing ---
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
@@ -69,19 +74,12 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-// Ensure database/collection exists up front
-using (var scope = app.Services.CreateScope())
-{
-    var mongo = scope.ServiceProvider.GetRequiredService<MongoLogService>();
-    mongo.EnsureDatabaseAndCollection();
-}
-
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
 
-// Map controllers (this picks up LogsController at /api/logs)
+// Map controllers (LogController -> /api/log)
 app.MapControllers();
 
 // Health endpoint

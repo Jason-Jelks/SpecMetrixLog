@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	  
 	  <!-- NuGet Package Info -->
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	  <PackageId>SpecMetrix.Shared</PackageId>
-	  <Version>0.1.11</Version>
+	  <Version>0.1.12</Version>
 	  <Authors>Jason Jelks</Authors>
 	  <Company>SpecMetrix</Company>
 	  <Description>Shared utilities and classes for SpecMetrix Systems</Description>
@@ -19,8 +19,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MongoDB.Bson" Version="3.1.0" />
-    <PackageReference Include="SpecMetrix.Interfaces" Version="0.1.11" />
+    <PackageReference Include="MongoDB.Bson" Version="3.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SpecMetrix.Interfaces">
+      <HintPath>..\..\..\Interfaces\SpecMetrixInterfaces\SpecMetrix.Interfaces\bin\Release\net10.0\SpecMetrix.Interfaces.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

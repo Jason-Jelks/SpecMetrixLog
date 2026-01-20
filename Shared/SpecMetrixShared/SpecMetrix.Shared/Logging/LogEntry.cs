@@ -7,6 +7,8 @@ namespace SpecMetrix.Shared.Logging;
 /// </summary>
 public class LogEntry : ILogEntry
 {
+    public string? EventId { get; set; }
+
     public Guid LogId { get; set; }
 
     public required string Namespace { get; set; }

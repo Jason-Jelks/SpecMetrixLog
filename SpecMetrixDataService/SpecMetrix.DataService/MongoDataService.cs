@@ -1,48 +1,53 @@
-﻿using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using SpecMetrix.Interfaces;
 using SpecMetrix.Shared.Logging;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SpecMetrix.DataService
 {
-    /*
-    * 12.05.2024 jj - Changed all MongoDataService features to use MongoLogEntry (SpecMetrix.Shared 0.1.10 required)
-    *                 This is to remove conflicts for Serilog writes to MongoDB using LogEntry class.
-    *                 Note However that as of this release (0.1.10) the returning interface is still based on ILogEntry
-    *                 we may need to add a IMongoLogEntry for the consumers to manage correct implementation of all data
-    */
-
-    public class MongoDataService : IDataService
+    public sealed class MongoDataService : IDataService<MongoLogEntry>
     {
+        private const string DefaultDatabaseName = "Logging";
+        private const string DefaultCollectionName = "Logs";
 
-        private readonly IMongoCollection<MongoLogEntry> _mongoLogCollection; // used for read processing
+        private readonly IMongoCollection<MongoLogEntry> _mongoLogCollection;
 
         public MongoDataService(IMongoClient mongoClient)
         {
-            var database = mongoClient.GetDatabase("Logging");
-            _mongoLogCollection = database.GetCollection<MongoLogEntry>("Logs"); // added _mongoLogCollection
+            if (mongoClient == null) throw new ArgumentNullException(nameof(mongoClient));
+
+            var database = mongoClient.GetDatabase(DefaultDatabaseName);
+            _mongoLogCollection = database.GetCollection<MongoLogEntry>(DefaultCollectionName);
         }
 
-        public async Task WriteLogAsync(ILogEntry MongoLogEntry)
+        public async Task WriteLogAsync(MongoLogEntry entry)
         {
-            await _mongoLogCollection.InsertOneAsync((MongoLogEntry)MongoLogEntry); // Cast IMongoLogEntry to MongoLogEntry
+            if (entry == null) throw new ArgumentNullException(nameof(entry));
+            await _mongoLogCollection.InsertOneAsync(entry).ConfigureAwait(false);
         }
 
-        public async Task WriteLogsAsync(IEnumerable<ILogEntry> logEntries)
+        public async Task WriteLogsAsync(IEnumerable<MongoLogEntry> entries)
         {
-            await _mongoLogCollection.InsertManyAsync((IEnumerable<MongoLogEntry>)logEntries); // Cast IEnumerable<IMongoLogEntry> to IEnumerable<MongoLogEntry>
+            if (entries == null) throw new ArgumentNullException(nameof(entries));
+
+            var list = entries as IList<MongoLogEntry> ?? entries.ToList();
+            if (list.Count == 0) return;
+
+            await _mongoLogCollection.InsertManyAsync(list).ConfigureAwait(false);
         }
 
-        public async Task<IEnumerable<ILogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
+        public async Task<IEnumerable<MongoLogEntry>> ReadLogsAsync(LogQueryOptions queryOptions)
         {
+            if (queryOptions == null) throw new ArgumentNullException(nameof(queryOptions));
+
             try
             {
                 var filterBuilder = Builders<MongoLogEntry>.Filter;
-                var filter = filterBuilder.Empty; // Default to no filters
+                var filter = filterBuilder.Empty;
 
-                // Apply filters based on query options
                 if (queryOptions.StartDate.HasValue)
                     filter &= filterBuilder.Gte(log => log.Timestamp, queryOptions.StartDate.Value);
 
@@ -69,22 +74,19 @@ namespace SpecMetrix.DataService
 
                 var query = _mongoLogCollection.Find(filter);
 
-                // Apply sorting and limiting if specified
                 if (queryOptions.HowManyLogsToGet.HasValue)
                 {
                     query = query.SortByDescending(log => log.Timestamp)
                                  .Limit(queryOptions.HowManyLogsToGet.Value);
                 }
 
-                return await query.ToListAsync();
+                return await query.ToListAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                // Log the exception for debugging
                 Console.WriteLine($"Error while reading logs: {ex.Message}");
-                return []; // returns empty IEnumerable<IMongoLogEntry>
+                return Enumerable.Empty<MongoLogEntry>();
             }
         }
-
     }
 }

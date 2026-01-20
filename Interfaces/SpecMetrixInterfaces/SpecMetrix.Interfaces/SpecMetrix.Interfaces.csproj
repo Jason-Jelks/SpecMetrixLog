@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
 	<!-- NuGet Package Info -->
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<PackageId>SpecMetrix.Interfaces</PackageId>
-	<Version>0.1.11</Version>
+	<Version>0.1.12</Version>
 	<Authors>Jason Jelks</Authors>
 	<Company>SpecMetrix</Company>
 	<Description>Interfaces for SpecMetrix Logging System</Description>

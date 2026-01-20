@@ -1,15 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using LoggingService.Extensions.Interfaces;
 using SpecMetrix.Interfaces;               // ILogEntry
-using SpecMetrix.Shared.Logging;           // LogLevel, LogEntry
+using SpecMetrix.Shared.Logging;           // LogEntry
 
 namespace SpecMetrix.LoggingService.Services
 {
@@ -19,30 +19,53 @@ namespace SpecMetrix.LoggingService.Services
     /// </summary>
     public sealed class LoggingQueueService : BackgroundService, ILoggingService
     {
-        // Bounded channel to protect memory in bursty scenarios
-        private readonly Channel<ILogEntry> _channel =
-            Channel.CreateBounded<ILogEntry>(new BoundedChannelOptions(10_000)
+        private readonly Channel<ILogEntry> _channel;
+        private readonly ILogger<LoggingQueueService> _hostLogger;
+        private readonly LoggingIngestionOptions _options;
+
+        public LoggingQueueService(
+            ILogger<LoggingQueueService> hostLogger,
+            IOptions<LoggingIngestionOptions> options)
+        {
+            _hostLogger = hostLogger ?? throw new ArgumentNullException(nameof(hostLogger));
+            _options = options?.Value ?? new LoggingIngestionOptions();
+
+            _channel = Channel.CreateBounded<ILogEntry>(new BoundedChannelOptions(_options.Capacity)
             {
-                FullMode = BoundedChannelFullMode.DropOldest,
+                FullMode = _options.DropOldest ? BoundedChannelFullMode.DropOldest : BoundedChannelFullMode.Wait,
                 SingleReader = true,
                 SingleWriter = false
             });
-
-        private readonly ILogger<LoggingQueueService> _hostLogger;
-
-        public LoggingQueueService(ILogger<LoggingQueueService> hostLogger)
-        {
-            _hostLogger = hostLogger;
         }
 
         public void EnqueueLog(ILogEntry logEntry)
         {
             if (logEntry == null) return;
 
-            // Non-blocking; drops oldest when full (configured above)
+            // Non-blocking: queue behavior controlled by options
             if (!_channel.Writer.TryWrite(logEntry))
             {
-                _hostLogger.LogWarning("Log queue full; dropping oldest entry.");
+                var eventId = ResolveEventId(logEntry);
+                var level = ResolveLevel(logEntry);
+
+                // Never drop critical config ingestion errors: sync fallback write
+                if (_options.NeverDropCritical &&
+                    !string.IsNullOrWhiteSpace(eventId) &&
+                    eventId.StartsWith(_options.CriticalEventPrefix, StringComparison.OrdinalIgnoreCase) &&
+                    (level == LogEventLevel.Error || level == LogEventLevel.Fatal))
+                {
+                    try
+                    {
+                        WriteToSerilog(logEntry);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _hostLogger.LogError(ex, "Critical log fallback write failed (EventId={EventId}).", eventId);
+                    }
+                }
+
+                _hostLogger.LogWarning("Log queue full; dropping entry. EventId={EventId}", eventId ?? "");
             }
         }
 
@@ -76,11 +99,14 @@ namespace SpecMetrix.LoggingService.Services
 
         private static void WriteToSerilog(ILogEntry e)
         {
-            // If the caller already uses the shared DTO, we can access rich fields.
+            // If the caller uses the shared DTO, we can access rich fields.
             if (e is LogEntry dto)
             {
                 var level = MapLevel(dto.Level);
+                var eventId = ResolveEventId(dto);
+
                 var logger = Log.ForContext("Namespace", dto.Namespace ?? "SA")
+                                .ForContext("EventId", eventId ?? "")
                                 .ForContext("MachineName", dto.MachineName ?? "")
                                 .ForContext("Code", dto.Code)
                                 .ForContext("Process", dto.Process ?? "")
@@ -91,22 +117,18 @@ namespace SpecMetrix.LoggingService.Services
                 // Attach Metadata/TemplateValues when present
                 if (dto.Metadata is { Count: > 0 })
                     logger = logger.ForContext("Metadata", dto.Metadata, destructureObjects: true);
+
                 if (dto.TemplateValues is { Count: > 0 })
                     logger = logger.ForContext("TemplateValues", dto.TemplateValues, destructureObjects: true);
 
-                // Prefer message template + values; otherwise use rendered/message
-                if (!string.IsNullOrWhiteSpace(dto.MessageTemplate) && dto.TemplateValues is { Count: > 0 })
+                // IMPORTANT:
+                // Do NOT pass dictionary template values as Serilog template args; it will not bind as expected.
+                // Keep structure in Metadata/TemplateValues and log a rendered message string.
+                var msg = ResolveRenderedMessage(dto);
+
+                if (!string.IsNullOrWhiteSpace(msg))
                 {
-                    // Render with values as a single object so Serilog keeps structure
-                    logger.Write(level, dto.MessageTemplate, dto.TemplateValues);
-                }
-                else if (!string.IsNullOrWhiteSpace(dto.Message))
-                {
-                    logger.Write(level, "{Message}", dto.Message);
-                }
-                else if (!string.IsNullOrWhiteSpace(dto.RenderedMessage))
-                {
-                    logger.Write(level, "{Message}", dto.RenderedMessage);
+                    logger.Write(level, "{Message}", msg);
                 }
                 else
                 {
@@ -118,29 +140,86 @@ namespace SpecMetrix.LoggingService.Services
             }
 
             // Generic fallback for any ILogEntry (unknown runtime type)
-            // Serialize the object graph to preserve detail.
             loggerFallback(e);
         }
 
         private static void loggerFallback(ILogEntry e)
         {
-            var lvl = LogEventLevel.Information;
-            try
-            {
-                // If the interface exposes Level, try to map it
-                var levelProp = e.GetType().GetProperty("Level");
-                if (levelProp != null)
-                {
-                    var v = levelProp.GetValue(e, null);
-                    if (v is SpecMetrix.Interfaces.LogLevel sharedLevel) lvl = MapLevel(sharedLevel);
-                    else if (v is string s && Enum.TryParse<SpecMetrix.Interfaces.LogLevel>(s, true, out var parsed))
-                        lvl = MapLevel(parsed);
-                }
-            }
-            catch { /* ignore */ }
+            var lvl = ResolveLevel(e);
+            var eventId = ResolveEventId(e);
 
             Log.ForContext("EntryType", e.GetType().FullName ?? "Unknown")
+               .ForContext("EventId", eventId ?? "")
                .Write(lvl, "{@Entry}", e);
+        }
+
+        private static LogEventLevel ResolveLevel(ILogEntry e)
+        {
+            try
+            {
+                if (e is LogEntry dto) return MapLevel(dto.Level);
+
+                var levelProp = e.GetType().GetProperty("Level");
+                if (levelProp == null) return LogEventLevel.Information;
+
+                var v = levelProp.GetValue(e, null);
+                if (v is SpecMetrix.Interfaces.LogLevel sharedLevel) return MapLevel(sharedLevel);
+
+                if (v is string s && Enum.TryParse<SpecMetrix.Interfaces.LogLevel>(s, true, out var parsed))
+                    return MapLevel(parsed);
+            }
+            catch { }
+
+            return LogEventLevel.Information;
+        }
+
+        private static string? ResolveEventId(ILogEntry e)
+        {
+            // Preferred: first-class EventId property
+            try
+            {
+                var p = e.GetType().GetProperty("EventId");
+                if (p != null)
+                {
+                    var v = p.GetValue(e, null) as string;
+                    if (!string.IsNullOrWhiteSpace(v)) return v;
+                }
+            }
+            catch { }
+
+            // Fallback: Metadata["eventId"]
+            if (e is LogEntry dto && dto.Metadata != null)
+            {
+                if (dto.Metadata.TryGetValue("eventId", out var ev) && ev != null)
+                {
+                    var s = ev.ToString();
+                    if (!string.IsNullOrWhiteSpace(s)) return s;
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ResolveRenderedMessage(LogEntry dto)
+        {
+            if (!string.IsNullOrWhiteSpace(dto.Message)) return dto.Message;
+            if (!string.IsNullOrWhiteSpace(dto.RenderedMessage)) return dto.RenderedMessage;
+
+            // If we have a template, try to render it deterministically (best-effort).
+            if (!string.IsNullOrWhiteSpace(dto.MessageTemplate) &&
+                dto.TemplateValues is { Count: > 0 })
+            {
+                var rendered = dto.MessageTemplate;
+                foreach (var kv in dto.TemplateValues)
+                {
+                    rendered = rendered.Replace("{" + kv.Key + "}", kv.Value?.ToString() ?? string.Empty);
+                }
+                return rendered;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.MessageTemplate)) return dto.MessageTemplate;
+
+            return null;
         }
 
         private static LogEventLevel MapLevel(SpecMetrix.Interfaces.LogLevel level)

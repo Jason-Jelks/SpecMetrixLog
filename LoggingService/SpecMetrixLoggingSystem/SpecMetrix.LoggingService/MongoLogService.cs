@@ -31,8 +31,9 @@ namespace LoggingService
             _database = client.GetDatabase(_config.DatabaseName);
             _activeDatabaseName = _config.DatabaseName;
 
-            EnsureDatabaseAndCollection();
-            EnsureHealthCollection();
+            // NOTE:
+            // Do NOT call EnsureDatabaseAndCollection / EnsureHealthCollection here.
+            // Startup initialization is handled by LoggingStorageInitializer for deterministic DI behavior.
         }
 
         private DatabaseConfig? TryConnect(string? dbKey, Dictionary<string, DatabaseConfig> configs)
@@ -113,7 +114,7 @@ namespace LoggingService
             Console.WriteLine($"MongoDB Time-Series Collection '{_config.CollectionName}' Created Successfully in '{_activeDatabaseName}'");
         }
 
-        private void EnsureHealthCollection()
+        public void EnsureHealthCollection()
         {
             var collections = _database.ListCollectionNames().ToList();
             if (!collections.Contains(_healthCollectionName))
